@@ -2,6 +2,10 @@
 
 A dependency-free interactive engineering experiment: longitudinal launch, fan-assisted surface contact, and a vertical cold-gas hop. Original procedural WebGL vehicle, pressure-vessel cutaway, force vectors, timeline, telemetry, ghost comparisons, repeated launches, CSV export and shareable parameter presets.
 
+**Watch / Try:** [Live lab](https://albert-gil.github.io/TRoadster/?demo=1) · [Capture mode](https://albert-gil.github.io/TRoadster/?demo=1&capture=1)
+
+Built with Node 24, zero npm dependencies, RK4 integration, and native WebGL. All vehicle numbers are illustrative assumptions — not calibrated Tesla specifications.
+
 ## Run locally
 
 Requires Node.js 24 or later. No package installation or external runtime resources.
@@ -58,13 +62,15 @@ Two equivalent downward nozzle banks supply a timed vertical thrust pulse. After
 
 ## Demonstration sequence
 
+Open the [live demo](https://albert-gil.github.io/TRoadster/?demo=1) or `?demo=1&capture=1` for a full-bleed recording layout.
+
 1. Start in Launch with the default assumptions. Enable Ghosts and run at 0.5× speed.
 2. Rewind, enable Cutaway and Forces, replay the tank discharge.
 3. Finish the run and choose “Launch again, same tank.” Compare the new 0–60 prediction.
 4. In Invert, choose “Sweep 0–180°” or drag the angle slider. Play maps six seconds onto platform angle; the tank is not discharged. Reduce fan command while inverted to reveal the contact boundary. Force vectors show contact N, suction, and tangential demand.
 5. In Hop, run the pulse and observe the peak height and unpowered touchdown speed.
 
-Capture the first three shots for a 20–30-second presentation. Keep the independent-simulation caption visible.
+Keep the independent-simulation caption visible. Post kit and captions: [`share/SHARE.md`](share/SHARE.md).
 
 Keyboard: Space plays or pauses; `[` / `]` scrub; with the canvas focused, arrow keys orbit and `+` / `-` zoom. Pinch or the on-canvas ± buttons zoom on touch devices.
 
@@ -76,8 +82,7 @@ Browser QA (2026-10-18, local `http://127.0.0.1:4173`): desktop ~766px and 390px
 
 ## Next milestones
 
-After Launch + Blowdown is publicly shareable:
+Live lab: https://albert-gil.github.io/TRoadster/?demo=1
 
-- Cinematic recording and a verified hosted portfolio URL.
 - Regulated gas delivery and real-gas lookup tables (deferred).
 - Hop landing controller and planar attitude dynamics (deferred; keep current Hop/Invert disclosures until those models exist).

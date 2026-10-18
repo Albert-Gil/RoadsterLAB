@@ -66,13 +66,13 @@ For physics changes, run the physics tests and add focused checks for new conser
 
 For UI changes, rebuild and check browser JavaScript syntax. When browser tools are available, inspect desktop and narrow layouts and exercise tabs, sliders, playback, scrubbing, cutaway, force vectors, repeat launch and exports. Check WebGL errors and preserve controls across rerenders.
 
-Report exactly what was verified. Passing numerical tests does not establish visual correctness or validation against Tesla data. A Cursor-browser pass on desktop (~766px) and 390px mobile emulation was completed 2026-10-18 (tabs, playback, cutaway, Invert sweep, Hop remount, zoom controls, rewind, WebGL getError). Physical iOS Safari and a verified public URL remain outstanding.
+Report exactly what was verified. Passing numerical tests does not establish visual correctness or validation against Tesla data. A Cursor-browser pass on desktop (~766px) and 390px mobile emulation was completed 2026-10-18 (tabs, playback, cutaway, Invert sweep, Hop remount, zoom controls, rewind, WebGL getError). Public URL: https://albert-gil.github.io/TRoadster/?demo=1. Physical iOS Safari remains outstanding.
 
 ## Source, deployment and collaboration
 
 - Inspect Git status before editing; preserve user changes and unrelated files.
 - Keep credentials out of source, logs, shell arguments and commits. Do not overwrite or force-push history.
-- Reuse the existing Site identity in `impulse/.openai/hosting.json` (`appgprj_6ad529f9afc48191b5bb6ed5f791fb24`). Source publication previously failed because the Git hosting endpoint could not resolve; do not link a live URL until republish succeeds.
+- Reuse the existing Site identity in `impulse/.openai/hosting.json` (`appgprj_6ad529f9afc48191b5bb6ed5f791fb24`). The verified public URL is GitHub Pages: https://albert-gil.github.io/TRoadster/. Do not invent additional unpublished URLs.
 - If publishing through Sites, follow its current workflow, preserving this root repository. Do not create duplicate Sites or silently replace the root Git history to satisfy a helper's checkout assumptions.
 - The app's current Library HTML and source ZIP are exports. When the user requests an update to an existing Library file, rebuild and replace that same Library identity rather than creating duplicates.
 - Prefer small, coherent changes. Keep engineering documentation aligned with behavior. Summarize changes, verification, and remaining limitations when handing work back.

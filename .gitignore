@@ -13,6 +13,11 @@
 # Generated delivery bundles and operating-system files
 *.zip
 *.tar.gz
+impulse/share/*.webm
+impulse/share/*-tmp.*
+impulse/share/*-1080.mp4
+impulse/share/end-*.mp4
+impulse/share/concat.txt
 .DS_Store
 Thumbs.db
 Desktop.ini
