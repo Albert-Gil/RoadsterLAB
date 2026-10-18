@@ -19,3 +19,27 @@ jobs:
       - run: node --experimental-strip-types --test tests/physics.test.ts
       - run: node --check dist/app.js
       - run: node --check dist/scene.js
+
+  pages:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: node scripts/build.mjs
+        working-directory: impulse
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: impulse/dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

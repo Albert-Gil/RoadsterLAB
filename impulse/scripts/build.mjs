@@ -8,5 +8,5 @@ await writeFile('dist/physics.js', physics);
 const html = await readFile('index.html','utf8'), css = await readFile('src/style.css','utf8');
 const scene = await readFile('src/scene.js','utf8'), app = await readFile('src/app.js','utf8');
 const bundled = physics.replace(/^export /gm,'') + '\n' + scene.replace(/^export /gm,'') + '\n' + app.replace(/^import .*;\r?\n/gm,'');
-await writeFile('dist/impulse.html', html.replace('<link rel="stylesheet" href="/style.css"/>', `<style>${css}</style>`).replace('<script type="module" src="/app.js"></script>', `<script type="module">${bundled.replace(/<\/script/gi,'<\\/script')}</script>`));
+await writeFile('dist/impulse.html', html.replace('<link rel="stylesheet" href="style.css"/>', `<style>${css}</style>`).replace('<script type="module" src="app.js"></script>', `<script type="module">${bundled.replace(/<\/script/gi,'<\\/script')}</script>`));
 console.log('Built dependency-free application in dist/');
