@@ -1,0 +1,18 @@
+# Dependencies, build outputs, local caches and preserved setup metadata
+**/node_modules/
+**/dist/
+**/.sites-runtime/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+
+# Generated delivery bundles and operating-system files
+*.zip
+*.tar.gz
+.DS_Store
+Thumbs.db
+Desktop.ini

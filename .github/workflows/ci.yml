@@ -1,0 +1,21 @@
+name: verify
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: impulse
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: node scripts/build.mjs
+      - run: node --experimental-strip-types --test tests/physics.test.ts
+      - run: node --check dist/app.js
+      - run: node --check dist/scene.js
