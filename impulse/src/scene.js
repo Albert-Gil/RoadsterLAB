@@ -1,15 +1,23 @@
 export const SCENARIO_COLORS = [
-  {name:'Electric only',hex:'#dce1e5',rgb:[.86,.88,.9]},
-  {name:'Fan assisted',hex:'#59cbdc',rgb:[.35,.80,.86]},
-  {name:'Thrust assisted',hex:'#ef7955',rgb:[.94,.47,.33]}
+  {name:'Electric only',hex:'#dce1e5',plot:'#a9b7c4',dash:'1 3.5',rgb:[.86,.88,.9]},
+  {name:'Fan assisted',hex:'#59cbdc',plot:'#59cbdc',dash:'7 4',rgb:[.35,.80,.86]},
+  {name:'Thrust assisted',hex:'#ef7955',plot:'#ef7955',dash:'',rgb:[.94,.47,.33]}
 ];
+// Launch lanes: electric nearest the default camera, thrust farthest. Metres, scene +z.
+export const LANE_WIDTH=3.4;
+export const laneZ=m=>(1-m)*LANE_WIDTH;
+const CAMERAS={
+  field:{yaw:2.5,elev:.36,zoom:6.6,shot:{yaw:2.38,elev:.3,zoom:6.2}},
+  side:{yaw:Math.PI/2,elev:.1,zoom:6.6,shot:{yaw:Math.PI/2,elev:.08,zoom:6.4}},
+  focus:{yaw:.88,elev:.22,zoom:6.6,shot:{yaw:.84,elev:.2,zoom:6.1}}
+};
 // Native WebGL renderer. Original procedural Roadster built from designed character lines; Lambert lighting, no environment reflections.
 const I=()=>[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
 function mul(a,b){const o=Array(16).fill(0);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)o[c*4+r]+=a[k*4+r]*b[c*4+k];return o;}
 function matrix(p=[0,0,0],s=[1,1,1],r=[0,0,0]){const [x,y,z]=r,c=Math.cos,d=Math.sin;const rx=[1,0,0,0,0,c(x),d(x),0,0,-d(x),c(x),0,0,0,0,1],ry=[c(y),0,-d(y),0,0,1,0,0,d(y),0,c(y),0,0,0,0,1],rz=[c(z),d(z),0,0,-d(z),c(z),0,0,0,0,1,0,0,0,0,1];let m=mul(mul(rz,ry),rx);for(let j=0;j<3;j++)for(let i=0;i<3;i++)m[j*4+i]*=s[j];m[12]=p[0];m[13]=p[1];m[14]=p[2];return m;}
 const sub=(a,b)=>a.map((x,i)=>x-b[i]),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm=a=>{const l=Math.hypot(...a)||1;return a.map(x=>x/l);},dot=(a,b)=>a.reduce((v,x,i)=>v+x*b[i],0);
 function view(eye,target){const z=norm(sub(eye,target)),x=norm(cross([0,1,0],z)),y=cross(z,x);return [x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1];}
-function perspective(aspect){const f=Math.min(1,aspect/1.6)/Math.tan(.5/2),n=.1,far=160;return [f/aspect,0,0,0,0,f,0,0,0,0,(far+n)/(n-far),-1,0,0,2*far*n/(n-far),0];}
+function perspective(aspect,n=.1,far=160){const f=Math.min(1,aspect/1.6)/Math.tan(.5/2);return [f/aspect,0,0,0,0,f,0,0,0,0,(far+n)/(n-far),-1,0,0,2*far*n/(n-far),0];}
 function triangles(faces){const p=[],n=[];for(const f of faces){for(let i=1;i<f.length-1;i++){const a=f[0],b=f[i],c=f[i+1],v=norm(cross(sub(b,a),sub(c,a)));p.push(...a,...b,...c);n.push(...v,...v,...v);}}return {p,n};}
 function box(){const v=[[-.5,-.5,-.5],[.5,-.5,-.5],[.5,.5,-.5],[-.5,.5,-.5],[-.5,-.5,.5],[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5]];return triangles([[0,3,2,1],[4,5,6,7],[0,1,5,4],[3,7,6,2],[1,2,6,5],[0,4,7,3]].map(f=>f.map(i=>v[i])));}
 function cylinder(){const f=[],seg=48;for(let i=0;i<seg;i++){const a=i/seg*Math.PI*2,b=(i+1)/seg*Math.PI*2;const p=t=>[Math.cos(t),Math.sin(t)];const [x,y]=p(a),[u,v]=p(b);f.push([[x,y,-.5],[u,v,-.5],[u,v,.5],[x,y,.5]],[[0,0,.5],[x,y,.5],[u,v,.5]],[[0,0,-.5],[u,v,-.5],[x,y,-.5]]);}return triangles(f);}
@@ -277,7 +285,16 @@ export function carParts(){
   return out;
 }
 const vertex=`attribute vec3 aPosition;attribute vec3 aNormal;uniform mat4 uMVP;uniform mat4 uModel;varying vec3 vNormal;varying vec3 vWorld;varying float vLocalY;void main(){vWorld=(uModel*vec4(aPosition,1.)).xyz;vNormal=mat3(uModel)*aNormal;vLocalY=aPosition.y;gl_Position=uMVP*vec4(aPosition,1.);}`;
-const fragment=`precision highp float;varying vec3 vNormal;varying vec3 vWorld;varying float vLocalY;uniform vec4 uColor;uniform vec3 uEye;uniform float uMetal;uniform float uFloor;uniform float uTravel;uniform float uRough;uniform float uEmit;uniform float uSpec;uniform float uMirror;uniform float uAO;uniform vec4 uShadow;
+const fragment=`precision highp float;varying vec3 vNormal;varying vec3 vWorld;varying float vLocalY;uniform vec4 uColor;uniform vec3 uEye;uniform float uMetal;uniform float uFloor;uniform float uTravel;uniform float uRough;uniform float uEmit;uniform float uSpec;uniform float uMirror;uniform float uAO;uniform vec3 uShadows[3];uniform float uLanes;uniform float uFogK;
+// Painted line of half-width hw metres, kept at least about a pixel wide when distant.
+float paint(float d,float hw){
+#ifdef DERIV
+  float fw=fwidth(d);
+#else
+  float fw=.02;
+#endif
+  float w=max(hw,fw*.75);return (1.-smoothstep(w,w+fw,abs(d)))*min(1.,hw/w+.3);
+}
 void main(){
   vec3 n=normalize(vNormal);if(!gl_FrontFacing)n=-n;n*=uMirror;
   vec3 v=normalize(uEye-vWorld);
@@ -299,24 +316,34 @@ void main(){
   color+=vec3(.35,.55,.65)*rim*ndf*.055;
   color+=albedo*uEmit;
   if(uFloor>.5){
-    float gx=step(.988,fract((vWorld.x+uTravel)*.45));float gz=step(.988,fract(vWorld.z*.45));
-    float fade=exp(-length(vWorld.xz)*.038);
-    color=vec3(.042,.05,.048)+vec3(.028,.036,.034)*max(gx,gz)*fade;
-    float lane=step(abs(abs(vWorld.z)-2.55),.02);color+=lane*vec3(.16,.2,.18)*fade;
-    float dash=step(abs(vWorld.z),.014)*step(.5,fract((vWorld.x+uTravel)*.18));color+=dash*.11*fade;
-    vec2 q=abs(vWorld.xz-uShadow.xy)-vec2(2.,.78);float sd=length(max(q,0.))+min(max(q.x,q.y),0.);
-    color*=1.-uShadow.z*(1.-smoothstep(-.25,.75,sd));
+    float wx=vWorld.x+uTravel,wz=vWorld.z;
+    float gx=step(.988,fract(wx*.45));float gz=step(.988,fract(wz*.45));
+    float fade=exp(-length(vWorld.xz)*.038/uFogK);
+    color=vec3(.042,.05,.048)+vec3(.028,.036,.034)*max(gx,gz)*fade/uFogK;
+    if(uLanes<.5){
+      float lane=step(abs(abs(wz)-2.55),.02);color+=lane*vec3(.16,.2,.18)*fade;
+      float dash=step(abs(wz),.014)*step(.5,fract(wx*.18));color+=dash*.11*fade;
+    }else{
+      float track=step(abs(wz),5.1);
+      color+=track*vec3(.008,.01,.009);
+      color+=paint(abs(wz)-5.1,.06)*vec3(.2,.25,.22);
+      color+=paint(abs(wz)-1.7,.04)*step(.45,fract(wx*.25))*vec3(.13,.16,.14);
+      float ahead=track*step(-.1,wx);
+      color+=paint((fract(wx*.1+.5)-.5)*10.,.04)*ahead*vec3(.06,.08,.07);
+      color+=paint((fract(wx*.02+.5)-.5)*50.,.1)*ahead*vec3(.15,.19,.17);
+      color+=paint(wx,.14)*track*vec3(.4,.44,.42);
+    }
+    for(int i=0;i<3;i++){vec3 sh=uShadows[i];vec2 q=abs(vWorld.xz-sh.xy)-vec2(2.,.78);float sd=length(max(q,0.))+min(max(q.x,q.y),0.);color*=1.-sh.z*(1.-smoothstep(-.25,.75,sd));}
   }
-  float fog=1.-exp(-length(uEye-vWorld)*.012);color=mix(color,vec3(.045,.052,.05),fog);
+  float fog=1.-exp(-length(uEye-vWorld)*.012/uFogK);color=mix(color,vec3(.045,.052,.05),fog);
   gl_FragColor=vec4(color,uColor.a);
 }`;
-const GHOST={paint:[.62,.66,.64,.4],glass:[.05,.07,.08,.3],lit:[.7,.75,.78,.3],dark:[.06,.07,.07,.42]};
-const ghostColor=m=>m==='paint'||m==='blade'?GHOST.paint:m==='glassD'||m==='glassS'?GHOST.glass:['light','red','amber','plate','chrome'].includes(m)?GHOST.lit:GHOST.dark;
 export class Scene {
-  constructor(canvas){this.canvas=canvas;const gl=canvas.getContext('webgl',{antialias:true,alpha:false,preserveDrawingBuffer:true});if(!gl)throw new Error('WebGL is unavailable. Try enabling hardware acceleration.');this.gl=gl;this.yaw=.88;this.elev=.22;this.zoom=6.6;this.cut=false;this.shot={yaw:.84,elev:.2,zoom:6.1};
+  constructor(canvas){this.canvas=canvas;const gl=canvas.getContext('webgl',{antialias:true,alpha:false,preserveDrawingBuffer:true});if(!gl)throw new Error('WebGL is unavailable. Try enabling hardware acceleration.');this.gl=gl;this.cut=false;this.frameX=0;this.dist=6.6;this.setCamera('focus');
     const shader=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};
-    const p=gl.createProgram();gl.attachShader(p,shader(gl.VERTEX_SHADER,vertex));gl.attachShader(p,shader(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));gl.useProgram(p);this.program=p;
-    this.loc={};for(const x of ['uMVP','uModel','uColor','uEye','uMetal','uFloor','uTravel','uRough','uEmit','uSpec','uMirror','uAO','uShadow'])this.loc[x]=gl.getUniformLocation(p,x);
+    const deriv=gl.getExtension('OES_standard_derivatives')?'#extension GL_OES_standard_derivatives : enable\n#define DERIV 1\n':'';
+    const p=gl.createProgram();gl.attachShader(p,shader(gl.VERTEX_SHADER,vertex));gl.attachShader(p,shader(gl.FRAGMENT_SHADER,deriv+fragment));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));gl.useProgram(p);this.program=p;
+    this.loc={};for(const x of ['uMVP','uModel','uColor','uEye','uMetal','uFloor','uTravel','uRough','uEmit','uSpec','uMirror','uAO','uShadows','uLanes','uFogK'])this.loc[x]=gl.getUniformLocation(p,x);
     this.ap=gl.getAttribLocation(p,'aPosition');this.an=gl.getAttribLocation(p,'aNormal');this.meshes={};
     this.upload('box',box());this.upload('cyl',cylinder());
     const geo=CAR.build();this.bodyMats=Object.keys(geo.body);for(const m of this.bodyMats)this.upload('car:'+m,geo.body[m]);
@@ -337,6 +364,15 @@ export class Scene {
   upload(name,data){const gl=this.gl,pb=gl.createBuffer(),nb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,pb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data.p),gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,nb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data.n),gl.STATIC_DRAW);this.meshes[name]={pb,nb,count:data.p.length/3};}
   nudgeZoom(delta){this.zoom=Math.max(5.2,Math.min(15,this.zoom+delta));}
   easeToward(target,k){const a=Math.max(0,Math.min(1,k));this.yaw+=(target.yaw-this.yaw)*a;this.elev+=(target.elev-this.elev)*a;this.zoom+=(target.zoom-this.zoom)*a;}
+  setCamera(name){this.cam=CAMERAS[name]?name:'focus';const p=CAMERAS[this.cam];this.yaw=p.yaw;this.elev=p.elev;this.zoom=p.zoom;this.shot={...p.shot};}
+  camera(target,d,aspect){const eye=[target[0]+Math.cos(this.yaw)*d,target[1]+Math.sin(this.elev)*d,target[2]+Math.sin(this.yaw)*d];return {eye,vp:mul(perspective(aspect,Math.max(.1,d*.012),Math.max(160,d*8)),view(eye,target))};}
+  // Smallest camera distance that keeps every point inside the HUD-safe part of the frame.
+  fit(points,target,aspect){
+    const inside=d=>{const m=this.camera(target,d,aspect).vp;for(const [x,y,z] of points){const w=m[3]*x+m[7]*y+m[11]*z+m[15];if(w<=0)return false;const cx=(m[0]*x+m[4]*y+m[8]*z+m[12])/w,cy=(m[1]*x+m[5]*y+m[9]*z+m[13])/w;if(Math.abs(cx)>.84||cy>.56||cy<-.7)return false;}return true;};
+    let lo=3,hi=8000;if(!inside(hi))return hi;for(let i=0;i<30;i++){const mid=Math.sqrt(lo*hi);if(inside(mid))hi=mid;else lo=mid;}return hi;
+  }
+  // World point (metres, launch x measured from the start line) to canvas CSS pixels, or null off-screen.
+  project([X,Y,Z]){const m=this.vp;if(!m)return null;const x=X-this.frameX,w=m[3]*x+m[7]*Y+m[11]*Z+m[15];if(w<=0)return null;const cx=(m[0]*x+m[4]*Y+m[8]*Z+m[12])/w,cy=(m[1]*x+m[5]*Y+m[9]*Z+m[13])/w;if(Math.abs(cx)>1.02||Math.abs(cy)>1.02)return null;return [(cx+1)/2*this.canvas.clientWidth,(1-cy)/2*this.canvas.clientHeight];}
   drawM(mesh,m,color,o={}){
     const gl=this.gl,g=this.meshes[mesh];
     if(!g)return;
