@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULTS,G,GAMMA,R,CV,ATM,nozzleFlow,initialGas,simulateLaunch,simulateHop,invertState,fanModel,sampleAt} from '../src/physics.ts';
+import {gaugeToAbsoluteBar,absoluteToGaugeBar,presetPressure,IDEAL_GAS_MIN_TEMP,DEFAULTS,G,GAMMA,R,CV,ATM,nozzleFlow,initialGas,simulateLaunch,simulateHop,invertState,fanModel,sampleAt} from '../src/physics.ts';
 test('sealed tank retains mass and temperature with no thrusters',()=>{const start=initialGas(DEFAULTS);for(const mode of [0,1]){const r=simulateLaunch(DEFAULTS,mode);assert.equal(r.finalGas.mass,start.mass);assert.equal(r.finalGas.temp,start.temp);assert.equal(r.used,0);}});
 test('adiabatic tank follows analytical temperature-mass relation',()=>{const r=simulateLaunch(DEFAULTS),start=initialGas(DEFAULTS);for(const s of r.samples){const expected=start.temp*Math.pow(s.gas/start.mass,GAMMA-1);assert.ok(Math.abs(s.temp-expected)<.0001);assert.ok(s.pressure>=ATM);}});
 test('discharged inventory agrees with integrated mass flow',()=>{const r=simulateLaunch(DEFAULTS);let discharged=0;for(let i=1;i<r.samples.length;i++){const a=r.samples[i-1],b=r.samples[i];discharged+=(b.t-a.t)*(a.flow+b.flow)/2;}assert.ok(Math.abs(discharged-r.used)/r.used<.005);});
@@ -19,3 +19,45 @@ test('electrical energy matches integrated tire and fan power; tank U follows ad
 test('sampleAt interpolates kinematic fields between stored frames',()=>{const r=simulateLaunch(DEFAULTS),a=r.samples[10],b=r.samples[11],mid=sampleAt(r,(a.t+b.t)/2);assert.ok(Math.abs(mid.v-(a.v+b.v)/2)<1e-9);assert.equal(sampleAt(r,0).t,0);assert.equal(sampleAt(r,99).limit,r.samples.at(-1)!.limit);assert.ok(r.hundred!==null&&r.sixty!==null&&r.hundred>r.sixty);});
 test('invert reports analytic normal load and friction capacity',()=>{const weight=(DEFAULTS.mass+initialGas(DEFAULTS).mass)*G,level=invertState({...DEFAULTS,fan:0,angle:0});assert.ok(Math.abs(level.normal-weight)<1e-8);assert.equal(level.status,'ATTACHED');const inverted=invertState({...DEFAULTS,angle:180}),fan=fanModel(DEFAULTS);assert.ok(Math.abs(inverted.normal-(fan.downforce-weight))<1e-6);assert.ok(Math.abs(inverted.available-DEFAULTS.grip*Math.max(0,inverted.normal))<1e-8);});
 test('hop blowdown conserves adiabatic inventory like launch',()=>{const r=simulateHop(DEFAULTS),start=initialGas(DEFAULTS);let discharged=0;for(let i=1;i<r.samples.length;i++){const a=r.samples[i-1],b=r.samples[i];discharged+=(b.t-a.t)*(a.flow+b.flow)/2;}assert.ok(r.used>0);assert.ok(Math.abs(discharged-r.used)/r.used<.005);for(const s of r.samples){if(s.gas<1e-6)continue;const expected=start.temp*Math.pow(s.gas/start.mass,GAMMA-1);assert.ok(Math.abs(s.temp-expected)<1e-4);}});
+
+test('high impulse hop reaches apex and touchdown beyond six seconds',()=>{
+ const r=simulateHop({...DEFAULTS,mass:1200,pressure:350,volume:600,nozzle:20,pulse:1.5});
+ assert.equal(r.status,'TOUCHDOWN');assert.ok(r.samples.at(-1)!.t>6);
+ assert.equal(r.samples.at(-1)!.y,0);assert.ok(r.landingSpeed!>0);
+ const coast=r.samples.find(s=>s.t>1.52)!;
+ const analyticPeak=coast.y+coast.vy**2/(2*G);
+ assert.ok(Math.abs(r.peakHeight-analyticPeak)<.001);
+});
+
+test('gauge conversion and legacy links preserve absolute pressure',()=>{
+ assert.equal(gaugeToAbsoluteBar(0)*1e5,ATM);
+ assert.equal(DEFAULTS.volume,600);assert.equal(absoluteToGaugeBar(DEFAULTS.pressure),650);
+ assert.equal(DEFAULTS.pressure*1e5,65101325);
+ assert.equal(presetPressure(200,null),200);
+ assert.equal(presetPressure(200,'bara'),200);
+ assert.equal(presetPressure(650,'barg'),DEFAULTS.pressure);
+ const c={...DEFAULTS,pressure:presetPressure(200,null),volume:200};
+ assert.ok(Math.abs(initialGas(c).mass-200e5*.2/(R*293))<1e-10);
+});
+test('new default Hop converges with timestep refinement',()=>{
+ const a=simulateHop(DEFAULTS),b=simulateHop(DEFAULTS,.001);
+ assert.equal(a.status,'TOUCHDOWN');assert.equal(b.status,'TOUCHDOWN');
+ assert.ok(Math.abs(a.peakHeight-b.peakHeight)/b.peakHeight<.005);
+ assert.ok(Math.abs(a.landingSpeed!-b.landingSpeed!)/b.landingSpeed!<.005);
+});
+test('650 barg parameter corners retain positive finite inventory',()=>{
+ for(const mass of [1200,2600])for(const volume of [80,600])for(const nozzle of [2,20]){
+  const c={...DEFAULTS,mass,volume,nozzle,pulse:1.5};
+  for(const r of [simulateLaunch(c),simulateHop(c)]){
+   assert.ok(r.finalGas.mass>0&&r.finalGas.temp>0);
+   for(const s of r.samples)for(const x of Object.values(s))if(typeof x==='number')assert.ok(Number.isFinite(x));
+  }
+ }
+});
+test('default runs start inside the ideal-gas temperature range; repeated launches leave it',()=>{
+ const first=simulateLaunch(DEFAULTS),hop=simulateHop(DEFAULTS);
+ assert.ok(first.finalGas.temp>IDEAL_GAS_MIN_TEMP);assert.ok(hop.finalGas.temp>IDEAL_GAS_MIN_TEMP);
+ const second=simulateLaunch(DEFAULTS,2,first.finalGas);
+ assert.ok(second.finalGas.temp<IDEAL_GAS_MIN_TEMP);
+ assert.ok(second.samples.some(s=>s.temp<IDEAL_GAS_MIN_TEMP));
+});

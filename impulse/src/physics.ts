@@ -1,8 +1,15 @@
 /** SI throughout. All vehicle parameters are illustrative, not Tesla specifications. */
 export const G = 9.80665, R = 287.05, GAMMA = 1.4, CV = R / (GAMMA - 1), CP = CV + R, ATM = 101325;
+/** Config pressure stays in bar absolute; UI/presets may use bar gauge. */
+export function gaugeToAbsoluteBar(gauge: number) { return gauge + ATM / 1e5; }
+export function absoluteToGaugeBar(absolute: number) { return absolute - ATM / 1e5; }
+/** Unmarked legacy links store absolute bar. */
+export function presetPressure(value: number, unit: string | null) { return unit === 'barg' ? gaugeToAbsoluteBar(value) : value; }
+/** Below ~200 K, air at tank pressures above ~50 bar departs from pV=mRT by more than ~15% (tabulated Z). */
+export const IDEAL_GAS_MIN_TEMP = 200;
 export type Experiment = 'launch' | 'invert' | 'hop';
 export type Config = { mass: number; power: number; grip: number; fan: number; pressure: number; volume: number; nozzle: number; boostAt: number; leak: number; angle: number; pulse: number };
-export const DEFAULTS: Config = { mass: 1800, power: 900, grip: 1.3, fan: 80, pressure: 200, volume: 200, nozzle: 10, boostAt: 0, leak: 20, angle: 180, pulse: .65 };
+export const DEFAULTS: Config = { mass: 1800, power: 900, grip: 1.3, fan: 80, pressure: 650 + ATM / 1e5, volume: 600, nozzle: 10, boostAt: 0, leak: 20, angle: 180, pulse: .65 };
 export type GasState = { mass: number; temp: number };
 /** energy is electrical work ∫(F_tire v + P_fan) dt in joules, not tank internal energy U = m Cv T. */
 export type Sample = { t: number; x: number; v: number; a: number; pressure: number; temp: number; gas: number; thrust: number; tire: number; downforce: number; flow: number; energy: number; limit: string; y: number; vy: number };
@@ -70,21 +77,23 @@ export function invertState(c: Config) {
   const normal = fan.downforce + weight * Math.cos(rad), demand = Math.abs(weight * Math.sin(rad)), available = c.grip * Math.max(0, normal);
   return { ...fan, normal, demand, available, weight, status: normal <= 0 ? 'CONTACT LOST' : demand > available ? 'SLIDING' : 'ATTACHED', margin: normal / weight };
 }
-export function simulateHop(c: Config): Run {
+export function simulateHop(c: Config, dt = .002): Run {
   // Vertical-only demonstration. Two equivalent downward nozzle banks; no attitude claim.
   const start = initialGas(c); let s = [0, 0, start.mass, start.temp], t = 0, airborne = false, peakHeight = 0, landingSpeed: number | null = null;
-  const samples: Sample[] = [], dt = .002;
+  const samples: Sample[] = [];
   function flow(s: number[], t: number) { return t < c.pulse ? nozzleFlow(s[2] * R * s[3] / (c.volume / 1000), s[3], c.nozzle * 2e-4) : { flow: 0, thrust: 0 }; }
   const deriv = (s: number[], t: number) => { const n = flow(s, t), a = n.thrust / (c.mass + s[2]) - G; return [s[1], s[0] <= 0 && s[1] <= 0 ? Math.max(0, a) : a, -n.flow, -(GAMMA - 1) * s[3] * n.flow / s[2]]; };
-  for (let i = 0; t < 6; i++) {
+  for (let i = 0; t < 120; i++) {
     const n = flow(s, t); peakHeight = Math.max(peakHeight, s[0]);
-    if (i % 5 === 0) samples.push({ t, x: 0, v: Math.abs(s[1]), a: deriv(s,t)[1], pressure: s[2] * R * s[3] / (c.volume / 1000), temp: s[3], gas: s[2], thrust: n.thrust, tire: 0, downforce: 0, flow: n.flow, energy: 0, limit: t < c.pulse ? 'THRUST PULSE' : 'BALLISTIC COAST', y: Math.max(0, s[0]), vy: s[1] });
+    // Store every integration step to resolve the sharp valve cutoff in exported flow.
+    samples.push({ t, x: 0, v: Math.abs(s[1]), a: deriv(s,t)[1], pressure: s[2] * R * s[3] / (c.volume / 1000), temp: s[3], gas: s[2], thrust: n.thrust, tire: 0, downforce: 0, flow: n.flow, energy: 0, limit: t < c.pulse ? 'THRUST PULSE' : 'BALLISTIC COAST', y: Math.max(0, s[0]), vy: s[1] });
     const next = rk4(s, t, dt, deriv);
     if (next[0] > .001) airborne = true;
     if (airborne && next[0] <= 0) { const fraction = s[0] / (s[0] - next[0]); landingSpeed = Math.abs(s[1] + fraction * (next[1] - s[1])); t += fraction * dt; s = s.map((x,j) => x + fraction * (next[j]-x)); s[0] = 0; samples.push({ ...samples[samples.length - 1], t, y: 0, vy: s[1], v: Math.abs(s[1]), gas: s[2], temp: s[3], pressure: s[2]*R*s[3]/(c.volume/1000), thrust: 0, flow: 0, limit: 'TOUCHDOWN' }); break; }
     s = next; t += dt;
+    if (!airborne && t >= c.pulse) break;
   }
-  return { samples, sixty: null, hundred: null, finalGas: { mass: s[2], temp: s[3] }, used: start.mass-s[2], status: !airborne ? 'INSUFFICIENT LIFT' : landingSpeed === null ? 'IN FLIGHT' : 'TOUCHDOWN', peakHeight, landingSpeed };
+  return { samples, sixty: null, hundred: null, finalGas: { mass: s[2], temp: s[3] }, used: start.mass-s[2], status: !airborne ? 'INSUFFICIENT LIFT' : landingSpeed === null ? 'TIME LIMIT'  : 'TOUCHDOWN', peakHeight, landingSpeed };
 }
 export function sampleAt(run: Run, t: number): Sample {
   const a = run.samples; let lo = 0, hi = a.length - 1;

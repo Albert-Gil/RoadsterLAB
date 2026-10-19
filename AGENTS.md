@@ -10,8 +10,10 @@ The approved direction combines Launch, Invert, Hop, and pressure-vessel Blowdow
 
 - This directory is the Git repository root. The application lives in `impulse/`.
 - `impulse/src/physics.ts`: pure simulation functions, SI units, configuration and results.
-- `impulse/src/scene.js`: native WebGL renderer and original procedural vehicle geometry.
+- `impulse/src/scene.js`: native WebGL renderer and original procedural vehicle. The body is lofted from designed character lines (shoulder, beltline, roof rail, skirt crease) with per-panel creases; glass, pillars, gaps, vents, lights and skirts are exact projected panel cuts. `carParts()` exports the mesh for offline checks.
+- `impulse/scripts/render-ref.mjs`, `section-ref.mjs`, `measure-ref.mjs`: optional offline proportion checks against a local reference STL. The runtime never loads the STL and the model is not a decimated copy of it.
 - `impulse/src/app.js`: UI, controls, playback, plots, exports and shareable presets.
+- `impulse/src/audio.js`: opt-in Web Audio sonification; required by `build.mjs` and the standalone bundle.
 - `impulse/src/style.css`: responsive visual design.
 - `impulse/tests/physics.test.ts`: physical invariants, limiting cases and convergence checks.
 - `impulse/scripts/build.mjs`: builds browser assets and the standalone HTML.
@@ -39,7 +41,7 @@ Retain the dependency-free approach unless a concrete requirement justifies chan
 
 ## Engineering rules
 
-- Use SI units internally; convert only for display. Pressure inputs are absolute.
+- Use SI units internally; convert only for display. UI pressure inputs are gauge (barg); Config pressure is bar absolute and the solver uses Pa absolute. Unmarked legacy share links store absolute bar.
 - Clearly separate sourced manufacturer claims, reported details, modeling assumptions and calculated outputs. All current numerical vehicle inputs are illustrative assumptions.
 - Never silently tune unknown parameters to match a Tesla acceleration claim. Do not mix the 2017 concept specifications with later announcements.
 - Keep physics independent of rendering and playback speed. Use deterministic runs and event interpolation for speed milestones.
@@ -49,7 +51,7 @@ Retain the dependency-free approach unless a concrete requirement justifies chan
 - Preserve gas mass and temperature across repeat launches. Refill must be an explicit action.
 - Do not describe schematic airflow or effects as CFD results.
 
-Current limitations: ideal-gas adiabatic blowdown, no regulator or real-gas equation of state, quasi-static rear-drive load transfer, fixed aerodynamic coefficients, no detailed suspension or tire model. Invert evaluates a prescribed pose and does not simulate falling or sliding. Hop is vertical-only with ballistic return; it has no attitude controller, landing burn or impact dynamics. Preserve these disclosures until the corresponding models actually change.
+Current limitations: ideal-gas adiabatic blowdown (overstates stored mass by roughly 30–50% at 650 barg; gas below `IDEAL_GAS_MIN_TEMP` is flagged in the UI), no pressure-vessel structural mass, no regulator or real-gas equation of state, quasi-static rear-drive load transfer, fixed aerodynamic coefficients, no detailed suspension or tire model. Invert evaluates a prescribed pose and does not simulate falling or sliding. Hop is vertical-only with ballistic return; it has no attitude controller, landing burn or impact dynamics. Preserve these disclosures until the corresponding models actually change.
 
 ## Visual and interaction direction
 
@@ -66,7 +68,7 @@ For physics changes, run the physics tests and add focused checks for new conser
 
 For UI changes, rebuild and check browser JavaScript syntax. When browser tools are available, inspect desktop and narrow layouts and exercise tabs, sliders, playback, scrubbing, cutaway, force vectors, repeat launch and exports. Check WebGL errors and preserve controls across rerenders.
 
-Report exactly what was verified. Passing numerical tests does not establish visual correctness or validation against Tesla data. A Cursor-browser pass on desktop (~766px) and 390px mobile emulation was completed 2026-10-18 (tabs, playback, cutaway, Invert sweep, Hop remount, zoom controls, rewind, WebGL getError). Public URL: https://albert-gil.github.io/TRoadster/?demo=1. Physical iOS Safari remains outstanding.
+Report exactly what was verified. Passing numerical tests does not establish visual correctness or validation against Tesla data. A Cursor-browser pass was completed 2026-10-18 after the procedural panel model replaced the STL loft: desktop front/side/rear/top views, cutaway, Launch playback, scrubbing and rewind, ghosts, Hop, Invert at 0° and 180°, WebGL getError 0, and 390px emulation (the field of view widens below a 1.6 aspect ratio so the car fits). Public URL: https://albert-gil.github.io/TRoadster/?demo=1. Physical iOS Safari remains outstanding. The M1/M2 redesign was pushed to GitHub Pages on 2026-10-18 at the user's request.
 
 ## Source, deployment and collaboration
 
@@ -76,3 +78,6 @@ Report exactly what was verified. Passing numerical tests does not establish vis
 - If publishing through Sites, follow its current workflow, preserving this root repository. Do not create duplicate Sites or silently replace the root Git history to satisfy a helper's checkout assumptions.
 - The app's current Library HTML and source ZIP are exports. When the user requests an update to an existing Library file, rebuild and replace that same Library identity rather than creating duplicates.
 - Prefer small, coherent changes. Keep engineering documentation aligned with behavior. Summarize changes, verification, and remaining limitations when handing work back.
+
+## Active roadmap
+Follow MILESTONES.md. Current redesign starts with M1 foundations; Turn is approved for M7. Do not publish before the user approves the finished experience.

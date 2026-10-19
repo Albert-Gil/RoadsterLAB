@@ -35,6 +35,8 @@ First comment: Independent simulation with assumed vehicle numbers. It is not a 
 
 ## Re-record (optional)
 
+The clips in this folder show the earlier build (200 bar, 200 L, 0.5× playback). The redesigned build plays the demo at 1× with 650 barg and 600 L defaults; re-record before posting alongside it.
+
 1. Open the capture URL above (1080p window, 30 fps).
 2. Beat sheet: 0–6s ghost boost · 6–12s Cutaway · 12–18s Launch again, same tank · 18–25s Hop · end card.
 3. Keep the footer line “Independent simulation…” in frame.

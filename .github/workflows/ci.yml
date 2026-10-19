@@ -19,6 +19,7 @@ jobs:
       - run: node --experimental-strip-types --test tests/physics.test.ts
       - run: node --check dist/app.js
       - run: node --check dist/scene.js
+      - run: node --check dist/audio.js
 
   pages:
     needs: test
