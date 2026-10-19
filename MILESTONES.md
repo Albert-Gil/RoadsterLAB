@@ -1,11 +1,11 @@
 # IMPULSE development milestones
 
-Status: M1 complete: 23 numerical tests pass (including the ideal-gas temperature flag boundary); build/syntax checks pass; browser defaults and legacy pressure-link round trip verified. M2 implemented and ready for user visual review. M3 pending. No publication until user approval.
+Status: M1/M2 complete. Real-gas EOS (tabulated dry air, 400 barg default) inserted before M3; hold M3 Launch comparison until this physics milestone is accepted. No publication until user approval.
 Each milestone must pass engineering checks, interaction checks and visual review.
 
 | Milestone | Deliverables | Acceptance |
 |---|---|---|
-| M1 Foundations | 1x; 600 L; 650 barg; absolute solver units; legacy share links; scenario colors | Conversion, inventory, corner cases and convergence pass; browser controls reflect defaults |
+| M1 Foundations | 1x; 600 L; (later revised to 400 barg with real-gas table); absolute solver units; legacy share links; scenario colors | Conversion, inventory, corner cases and convergence pass; browser controls reflect defaults |
 | M2 Interface and identity | Unobstructed scene; telemetry strip; tuning drawer; analysis area; improved materials, lighting and shadows | Desktop/mobile readable; user reviews visual direction |
 | M3 Launch comparison | Three simultaneous cars; position, velocity, acceleration plots; hover, scrub, toggles; road markers | Plots and animation agree; consistent assumptions and meaningful separation |
 | M4 Blowdown and sound | Tank cutaway; pressure, temperature, mass, flow, thrust; valve markers; refined audio and volume | Depletion explains thrust; repeat/refill and audio lifecycle work |
@@ -20,8 +20,8 @@ Each milestone must pass engineering checks, interaction checks and visual revie
 - Hop may use disclosed constant display scaling per run; never clamp motion.
 - Invert/Turn wreck effects are not structural impact simulations.
 - Constant Turn speed is an idealized controller, disabled on impact.
-- Keep the ideal-gas baseline explicitly labeled; assess real-gas properties separately.
-- First complete showcase is M3 + M4; do not expand scope to publishing yet.
+- Live solver uses tabulated real dry air; ideal-gas formulas are no longer the live path.
+- First complete showcase is M3 + M4; do not expand scope to publishing yet. M3 held until real-gas work is accepted.
 
 
 ## M2 verification

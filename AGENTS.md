@@ -51,7 +51,7 @@ Retain the dependency-free approach unless a concrete requirement justifies chan
 - Preserve gas mass and temperature across repeat launches. Refill must be an explicit action.
 - Do not describe schematic airflow or effects as CFD results.
 
-Current limitations: ideal-gas adiabatic blowdown (overstates stored mass by roughly 30–50% at 650 barg; gas below `IDEAL_GAS_MIN_TEMP` is flagged in the UI), no pressure-vessel structural mass, no regulator or real-gas equation of state, quasi-static rear-drive load transfer, fixed aerodynamic coefficients, no detailed suspension or tire model. Invert evaluates a prescribed pose and does not simulate falling or sliding. Hop is vertical-only with ballistic return; it has no attitude controller, landing burn or impact dynamics. Preserve these disclosures until the corresponding models actually change.
+Current limitations: tabulated real dry air (Peng–Robinson + NASA \(c_p^\circ\) bake in `air-table.js`; envelope roughly 90–2000 K and 0.01–1200 kg/m³; OUT OF TABLE when outside), no pressure-vessel structural mass, no regulator or wall heat transfer, quasi-static rear-drive load transfer, fixed aerodynamic coefficients, no detailed suspension or tire model. Invert evaluates a prescribed pose and does not simulate falling or sliding. Hop is vertical-only with ballistic return; it has no attitude controller, landing burn or impact dynamics. Preserve these disclosures until the corresponding models actually change. Default fill is 400 barg / 600 L; regenerate the table with `node scripts/bake-air-table.mjs`.
 
 ## Visual and interaction direction
 

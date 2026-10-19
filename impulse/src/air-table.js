@@ -39,7 +39,7 @@ export function rhoFromPT(p,T){
   const fLo=propsAtTR(T,lo),fHi=propsAtTR(T,hi);
   if(!fLo.ok||!fHi.ok)return{rho:NaN,ok:false};
   if(p<fLo.p||p>fHi.p)return{rho:NaN,ok:false};
-  for(let n=0;n<70;n++){
+  for(let n=0;n<28;n++){
     const mid=Math.exp(0.5*(Math.log(lo)+Math.log(hi)));
     const pm=propsAtTR(T,mid).p;
     if(!(pm>0))return{rho:NaN,ok:false};
@@ -53,7 +53,7 @@ export function rhoFromPT(p,T){
 export function tempFromRU(rho,u){
   if(rho<AIR_RHO_MIN||rho>AIR_RHO_MAX)return{T:NaN,ok:false};
   let lo=AIR_T_MIN,hi=AIR_T_MAX;
-  for(let n=0;n<70;n++){
+  for(let n=0;n<28;n++){
     const mid=0.5*(lo+hi);
     const um=propsAtTR(mid,rho).u;
     if(!(um===um))return{T:NaN,ok:false};
@@ -64,36 +64,37 @@ export function tempFromRU(rho,u){
   if(!check.ok||Math.abs(check.u-u)/Math.max(1,Math.abs(u))>0.05)return{T:NaN,ok:false};
   return{T,ok:true};
 }
-export function propsFromPs(p,s){
-  if(!(p>0))return{T:NaN,rho:NaN,u:NaN,h:NaN,cp:NaN,ok:false};
-  let best=null,bestErr=Infinity;
-  for(let i=0;i<nT;i++){
-    const T=Ts[i];
-    const got=rhoFromPT(p,T);
-    if(!got.ok)continue;
-    const pr=propsAtTR(T,got.rho);
-    if(!pr.ok)continue;
-    const err=Math.abs(pr.s-s);
-    if(err<bestErr){bestErr=err;best={T,rho:got.rho,...pr};}
+/**
+ * Isentropic state at pressure p with entropy s.
+ * Optional Tseed (K) — e.g. ideal-gas isentropic guess — avoids a full T-grid scan.
+ */
+export function propsFromPs(p,s,Tseed){
+  if(!(p>0)||!Number.isFinite(s))return{T:NaN,rho:NaN,u:NaN,h:NaN,cp:NaN,ok:false};
+  let lo=AIR_T_MIN,hi=AIR_T_MAX,T=Number.isFinite(Tseed)?Math.min(hi,Math.max(lo,Tseed)):300;
+  // Expand a local bracket around the seed so Newton stays in-table.
+  let got=rhoFromPT(p,T),pr=got.ok?propsAtTR(T,got.rho):null;
+  if(!got.ok||!pr||!pr.ok){
+    for(let k=0;k<8;k++){
+      const mid=0.5*(lo+hi); got=rhoFromPT(p,mid);
+      if(!got.ok){if(k<4)lo=mid;else hi=mid;continue;}
+      pr=propsAtTR(mid,got.rho);
+      if(!pr.ok){hi=mid;continue;}
+      if(pr.s<s)lo=mid;else hi=mid;
+      T=mid;
+    }
   }
-  // refine T by bisection on entropy at fixed p
-  let lo=AIR_T_MIN,hi=AIR_T_MAX,okLo=false,okHi=false;
-  for(let n=0;n<50;n++){
-    const mid=0.5*(lo+hi);
-    const got=rhoFromPT(p,mid);
-    if(!got.ok){if(n<10){lo=mid;continue;}break;}
-    const pr=propsAtTR(mid,got.rho);
-    if(pr.s<s)lo=mid;else hi=mid;
-    okLo=true;
+  for(let n=0;n<10;n++){
+    got=rhoFromPT(p,T);
+    if(!got.ok)return{T:NaN,rho:NaN,u:NaN,h:NaN,cp:NaN,ok:false};
+    pr=propsAtTR(T,got.rho);
+    if(!pr.ok||!(pr.cp>100))return{T:NaN,rho:NaN,u:NaN,h:NaN,cp:NaN,ok:false};
+    const dT=(s-pr.s)*T/pr.cp;
+    T=Math.min(AIR_T_MAX,Math.max(AIR_T_MIN,T+dT));
+    if(Math.abs(dT)<0.05)break;
   }
-  if(!okLo&&!best)return{T:NaN,rho:NaN,u:NaN,h:NaN,cp:NaN,ok:false};
-  const T=0.5*(lo+hi);
-  const got=rhoFromPT(p,T);
-  if(!got.ok){
-    if(!best)return{T:NaN,rho:NaN,u:NaN,h:NaN,cp:NaN,ok:false};
-    return{T:best.T,rho:best.rho,u:best.u,h:best.h,cp:best.cp,ok:Math.abs(best.s-s)/Math.max(1,Math.abs(s))<0.02};
-  }
-  const pr=propsAtTR(T,got.rho);
+  got=rhoFromPT(p,T);
+  if(!got.ok)return{T:NaN,rho:NaN,u:NaN,h:NaN,cp:NaN,ok:false};
+  pr=propsAtTR(T,got.rho);
   const ok=pr.ok&&Math.abs(pr.s-s)/Math.max(1,Math.abs(s))<0.02;
   return{T,rho:got.rho,u:pr.u,h:pr.h,cp:pr.cp,ok};
 }
@@ -102,11 +103,16 @@ export function soundSpeed(T,rho){
   if(!pr.ok)return{a:NaN,ok:false};
   const dRho=Math.max(1e-6,rho*1e-4),dT=Math.max(0.05,T*1e-4);
   const pR=propsAtTR(T,rho+dRho),pT=propsAtTR(T+dT,rho);
-  if(!pR.ok||!pT.ok)return{a:NaN,ok:false};
-  const dpdr= (pR.p-pr.p)/dRho;
-  const dpdT= (pT.p-pr.p)/dT;
-  const cv=pr.cp - T*(dpdT*dpdT)/(rho*rho*Math.max(1e-6,dpdr));
-  if(!(cv>100)||!(dpdr>0))return{a:NaN,ok:false};
-  const a=Math.sqrt(Math.max(0,(pr.cp/cv)*dpdr));
+  if(pR.ok&&pT.ok){
+    const dpdr=(pR.p-pr.p)/dRho;
+    const dpdT=(pT.p-pr.p)/dT;
+    const cv=pr.cp-T*(dpdT*dpdT)/(rho*rho*Math.max(1e-6,dpdr));
+    if(cv>100&&dpdr>0){
+      const a=Math.sqrt(Math.max(0,(pr.cp/cv)*dpdr));
+      if(Number.isFinite(a)&&a>0)return{a,ok:true};
+    }
+  }
+  // Ideal-gas fallback keeps Mach searches alive near the cold table edge.
+  const a=Math.sqrt(1.4*pr.p/Math.max(rho,1e-12));
   return{a,ok:Number.isFinite(a)&&a>0};
 }

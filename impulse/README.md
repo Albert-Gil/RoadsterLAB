@@ -42,9 +42,9 @@ Newton's second law combines rear tire force, gas thrust, quadratic drag and rol
 
 The assumed fan curve intersects an orifice seal-leakage curve. A 4 m² sealed area converts pressure difference to load. Fan power is deducted from the electrical power cap. Fans are pre-spun before the run. Aerodynamic downforce and drag use fixed illustrative area-coefficient products.
 
-The tank is rigid, well mixed and adiabatic. Constant-property ideal air follows pV=mRT, dm/dt=-mdot and dT/dt=-(gamma-1)T*mdot/m. An equivalent converging nozzle supports both choked and unchoked flow. Thrust includes exhaust momentum and exit-pressure terms. The boost valve opens after the selected delay for two seconds. RK4 advances the model at 2 ms, with interpolated speed milestones. Fan and tank parameters are not reconstructed Tesla hardware.
+The tank is rigid, well mixed and adiabatic. Live thermodynamics use a **tabulated real dry-air** property grid (`src/air-table.js`), baked offline from Peng–Robinson + NASA ideal-gas \(c_p^\circ\) departure functions (`scripts/bake-air-table.mjs`). Fill mass is \(\rho(p,T)\,V\) from the table. Open-system blowdown advances state \((m,u)\) with \(d(mu)/dt=-\dot m\,h_e\). The nozzle is isentropic real-gas with discharge coefficient 0.9; thrust includes exhaust momentum and exit-pressure terms. Envelope roughly 90–2000 K and 0.01–1200 kg/m³; out-of-table states flag **OUT OF TABLE** rather than extrapolating. The boost valve opens after the selected delay for two seconds. RK4 advances the model at 2 ms, with interpolated speed milestones. Fan and tank parameters are not reconstructed Tesla hardware.
 
-**High-pressure gas deviates substantially from the ideal-gas model.** At the 650 barg default, pV=mRT gives about 464 kg of air in 600 L. Tabulated air data give a compressibility factor Z of about 1.32 at 500 bar and 300 K, and roughly 1.5 when extrapolated to 651 bara, so real air would hold roughly 30–50% less mass and support a correspondingly shorter thrust. The dry-mass input excludes the pressure-vessel structure; only the stored gas mass is added to the moving mass. Repeat launches cool the tank quickly (about 234 K after the first default launch and 191 K after the second); below 200 K the gas readout is flagged as outside the ideal-gas range, because tabulated Z departs from 1 by more than about 15% there at tank pressures above roughly 50 bar. Real-gas thermodynamics, regulator dynamics, wall heat transfer, load-sensitive tires, suspension and dynamic pitch are omitted. A negative front contact load terminates a run as outside the model envelope. Continued vehicle contact after such a condition is not simulated.
+At the **400 barg / 600 L / 293 K** default, table fill is about **250.5 kg** — well below the ideal-gas \(pV/RT\) inventory at the same state. The dry-mass input excludes the pressure-vessel structure; only the stored gas mass is added to the moving mass. Repeat launches cool the tank (about 260 K after the first default launch and 228 K after the second). Regulator dynamics, wall heat transfer, load-sensitive tires, suspension and dynamic pitch remain omitted. A negative front contact load terminates a run as outside the model envelope. Continued vehicle contact after such a condition is not simulated.
 
 “Launch again” preserves mass and temperature at the end of the six-second run, resetting vehicle position and speed. There is no inferred recharge or thermal recovery time. “Refill” explicitly restores the initial inventory.
 
@@ -79,7 +79,7 @@ Keyboard: Space plays or pauses; `[` / `]` scrub; with the canvas focused, arrow
 
 ## Verification
 
-Physics: `node --experimental-strip-types --test tests/physics.test.ts` (23 tests), covering mass/adiabatic inventory, timestep, assist ranking, nozzle choke and unchoked pressure-thrust, fan electrical budget, CONTACT LIMIT abort, tank `U = m Cv T`, `sampleAt`, Invert analytic loads, Hop blowdown and convergence, Hop flights beyond six seconds, gauge/absolute pressure conversion with legacy links, 650 barg parameter corners, and the ideal-gas temperature flag boundary.
+Physics: `node --experimental-strip-types --test tests/air-table.test.ts tests/physics.test.ts` (30 tests), covering table envelope and inverses, real-gas fill below ideal inventory, \((m,u)\) blowdown energy, nozzle flow, timestep, assist ranking, fan electrical budget, CONTACT LIMIT abort, `sampleAt`, Invert analytic loads, Hop blowdown and convergence, gauge/absolute pressure conversion with legacy links, 400 barg corners, and `gasValidity` / OUT OF TABLE flags.
 
 Browser QA (2026-10-18, local `http://127.0.0.1:4173`): desktop ~766px and 390px mobile emulation. Exercised Launch playback, cutaway, ghosts, 0–100 km/h note, Invert angle sweep with frozen gas inventory and contact vectors, Hop remount, zoom controls, rewind on a narrow layout, and WebGL `getError() === 0`. Passing numerical tests still do not validate Tesla data.
 
@@ -87,8 +87,9 @@ Browser QA (2026-10-18, local `http://127.0.0.1:4173`): desktop ~766px and 390px
 
 Live lab: https://albert-gil.github.io/TRoadster/?demo=1
 
-- Regulated gas delivery and real-gas lookup tables (deferred).
+- Regulated gas delivery and wall heat transfer (deferred).
 - Hop landing controller and planar attitude dynamics (deferred; keep current Hop/Invert disclosures until those models exist).
+- M3 Launch comparison UI (held until this real-gas milestone is accepted).
 
 
 ## Local testing and sound
@@ -122,14 +123,13 @@ existing deployment workflow.
 
 ## Milestone 1: revised defaults and pressure convention
 
-New sessions use 1x playback, 600 L storage and 650 barg at 293 K. This is
-651.01325 bara / 65,101,325 Pa absolute at the fixed 1.01325 bar ambient pressure.
-The input slider is gauge pressure; vessel telemetry, plots and CSV pressure are
+New sessions use 1x playback, 600 L storage and **400 barg** at 293 K. This is
+401.01325 bara / 40,101,325 Pa absolute at the fixed 1.01325 bar ambient pressure.
+The input slider is gauge pressure (still explores up to 650 barg); vessel telemetry, plots and CSV pressure are
 absolute (bara in the UI, Pa in CSV). Config.pressure remains bar absolute.
 New shared URLs identify pressureUnit=barg; old URLs without a unit retain their
-absolute-pressure interpretation, including preserved starting gas states.
-The ideal-gas adiabatic model remains an illustrative baseline at this pressure;
-it does not validate tank mass, hardware feasibility or Tesla performance.
+absolute-pressure interpretation, including preserved starting gas states (`gasMass` / `gasTemp` / optional `gasU`).
+The live solver uses the tabulated real-air model; it does not validate tank mass, hardware feasibility or Tesla performance.
 Scenario identity is pearl/slate (electric), cyan (fan), orange-red (thrust).
 See ../MILESTONES.md for the redesign roadmap. No public deployment is part of M1.
 

@@ -1,6 +1,6 @@
 # Real-gas dry-air equation of state for IMPULSE
 
-**Status:** Approved for implementation after user review of this file  
+**Status:** Implemented (inline; M3 held)  
 **Date:** 2026-10-18  
 **Scope:** Replace ideal-gas tank and nozzle thermodynamics with a tabulated dry-air property model before M3 Launch comparison work.
 
