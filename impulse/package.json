@@ -1,1 +1,17 @@
-{"name":"impulse-roadster-lab","version":"1.0.0","private":true,"type":"module","scripts":{"dev":"node scripts/serve.mjs","build":"node scripts/build.mjs","test":"node --experimental-strip-types --test tests/physics.test.ts","preview":"node scripts/serve.mjs"},"engines":{"node":">=24"}}
+{
+  "name": "roadsterlab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --experimental-strip-types --test tests/*.test.*",
+    "preview": "node scripts/serve.mjs",
+    "release:prepare": "node scripts/release.mjs",
+    "verify": "node scripts/build.mjs && node --experimental-strip-types --test tests/*.test.*"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

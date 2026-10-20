@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  AIR_R, insideTable, propsAtTR, rhoFromPT, tempFromRU, propsFromPs, soundSpeed
+  AIR_R, AIR_T_MIN, insideTable, propsAtTR, rhoFromPT, tempFromRU, propsFromPs, soundSpeed
 } from '../src/air-table.js';
 
 test('envelope helpers reject out-of-range states', () => {
@@ -45,7 +45,7 @@ test('tempFromRU round-trips u at fixed density', () => {
 });
 
 test('isentropic propsFromPs keeps entropy', () => {
-  // Mild expansion so the isentrope stays inside the table (deep blowdown can go <90 K).
+  // Mild expansion so the isentrope stays inside the table (cold states below 140 K are unsupported).
   const stag = propsAtTR(293, rhoFromPT(50e5, 293).rho);
   const exit = propsFromPs(20e5, stag.s);
   assert.equal(exit.ok, true);
@@ -57,4 +57,20 @@ test('sound speed is positive and finite in the gas region', () => {
   const { a, ok } = soundSpeed(293, 1.2);
   assert.equal(ok, true);
   assert.ok(a > 300 && a < 450);
+});
+
+
+test('consistent cp agrees with constant-pressure enthalpy slope',()=>{
+ for(const p of [1e5,50e5,200e5,400e5]){
+  const T=293,dt=.2,rho=rhoFromPT(p,T).rho;
+  const cp=propsAtTR(T,rho).cp;
+  const lo=propsAtTR(T-dt,rhoFromPT(p,T-dt).rho).h;
+  const hi=propsAtTR(T+dt,rhoFromPT(p,T+dt).rho).h;
+  const slope=(hi-lo)/(2*dt);
+  assert.ok(Math.abs(cp-slope)/slope<.08,`p=${p}, cp=${cp}, slope=${slope}`);
+ }
+});
+test('temperature inversion rejects energies beyond table instead of clamping',()=>{
+ const rho=10;
+ for(const u of [NaN,Infinity,propsAtTR(AIR_T_MIN,rho).u-1,propsAtTR(2000,rho).u+1])assert.equal(tempFromRU(rho,u).ok,false);
 });
