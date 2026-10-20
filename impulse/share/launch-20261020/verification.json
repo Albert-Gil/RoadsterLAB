@@ -1,0 +1,30 @@
+[
+  {
+    "format": "landscape",
+    "dimensions": [
+      1920,
+      1080
+    ],
+    "duration": 26.1,
+    "fps": 30,
+    "codec": "H.264",
+    "bytes": 3612721,
+    "silent": true,
+    "fast_start": true,
+    "decoded_without_error": true
+  },
+  {
+    "format": "portrait",
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "duration": 26.133333,
+    "fps": 30,
+    "codec": "H.264",
+    "bytes": 3337670,
+    "silent": true,
+    "fast_start": true,
+    "decoded_without_error": true
+  }
+]

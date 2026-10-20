@@ -1,0 +1,24 @@
+{
+  "segments_seconds": [
+    [
+      5.2,
+      8.3
+    ],
+    [
+      9.0,
+      16.5
+    ],
+    [
+      17.6,
+      24.9
+    ],
+    [
+      28.8,
+      35.6
+    ]
+  ],
+  "final_hold_seconds": 1.5,
+  "target_duration_seconds": 26.2,
+  "audio": "silent",
+  "frame_rate": "30 fps constant, duplicating source frames as needed"
+}
