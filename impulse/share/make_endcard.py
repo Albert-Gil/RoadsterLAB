@@ -43,7 +43,7 @@ def card(width, height, path):
     url_font = font("consola.ttf", int(height * 0.018))
     small = font("consola.ttf", int(height * 0.013))
     centered(draw, "IMPULSE", my + mark + int(height * 0.04), title, FG, width)
-    centered(draw, "albert-gil.github.io/TRoadster/", my + mark + int(height * 0.13), url_font, URL, width)
+    centered(draw, "albert-gil.github.io/RoadsterLAB/", my + mark + int(height * 0.13), url_font, URL, width)
     centered(
         draw,
         "Independent simulation  ·  illustrative parameters  ·  not Tesla specs",

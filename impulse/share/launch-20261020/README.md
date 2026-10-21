@@ -9,7 +9,7 @@ Prepared social-launch assets for review. No social posts have been published.
 
 The cuts show Launch, Hop, rotating Invert and Turn. They retain the calculated
 results, physics captions, author credit and model disclosure, with a closing
-link to https://albert-gil.github.io/TRoadster/. All vehicle inputs are illustrative
+link to https://albert-gil.github.io/RoadsterLAB/. All vehicle inputs are illustrative
 assumptions; these are simulated results, not measured Tesla performance.
 
 POST-DRAFTS.md includes LinkedIn/X drafts, a portfolio description and video alt

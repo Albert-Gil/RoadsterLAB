@@ -3,7 +3,7 @@ export const SHOWCASE_STEPS = [
  {kind:'launch',seconds:9,title:'Three systems. One start line.',caption:'Electric drive, fan suction and cold-gas thrust compete with the same vehicle and starting fill.',patch:{},shots:[[0,'field'],[4.5,'focus']]},
  {kind:'hop',seconds:8,title:'Spend the air. Save the landing.',caption:'A short pulse lifts the car. Automatic braking uses the remaining air to slow the return.',patch:{pulse:.25,landingBurn:1,valveRise:.06,feedLoss:8,expansionRatio:1.15},shots:[[0,'hop-track']]},
  {kind:'invert',seconds:10,title:'Turn gravity on its head.',caption:'The platform rotates from upright to inverted. Fan suction adds the contact load needed to stay attached.',patch:{},shots:[[0,'invert-field'],[5,'invert-track']]},
- {kind:'turn',seconds:9,title:'Grip decides the line.',caption:'Same speed and steering. The car without fan assistance runs wide and continues onto the grass.',patch:{},shots:[[0,'turn-field'],[5,'turn-focus']]}
+ {kind:'turn',seconds:9,title:'Same steering. A different outcome.',caption:'A 120-degree corner. Same speed and steering. The car without fan assistance runs wide and continues onto the grass.',patch:{turnSweep:120*Math.PI/180},shots:[[0,'turn-field']]}
 ];
 export const SHOWCASE_DURATION = SHOWCASE_STEPS.reduce((sum,s)=>sum+s.seconds,0);
 export function showcaseFrame(time){

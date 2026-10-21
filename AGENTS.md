@@ -1,4 +1,4 @@
-# TRoadster / RoadsterLAB
+# RoadsterLAB
 
 ## Purpose and priorities
 
@@ -87,13 +87,13 @@ For physics changes, run the physics tests and add focused checks for new conser
 
 For UI changes, rebuild and check browser JavaScript syntax. When browser tools are available, inspect desktop and narrow layouts and exercise tabs, sliders, playback, scrubbing, cutaway, force vectors, repeat launch and exports. Check WebGL errors and preserve controls across rerenders.
 
-Report exactly what was verified. Passing numerical tests does not establish visual correctness or validation against Tesla data. A Cursor-browser pass was completed 2026-10-18 after the procedural panel model replaced the STL loft: desktop front/side/rear/top views, cutaway, Launch playback, scrubbing and rewind, ghosts, Hop, Invert at 0° and 180°, WebGL getError 0, and 390px emulation (the field of view widens below a 1.6 aspect ratio so the car fits). Public URL: https://albert-gil.github.io/TRoadster/?demo=1. Physical iOS Safari remains outstanding. The M1/M2 redesign was pushed to GitHub Pages on 2026-10-18 at the user's request.
+Report exactly what was verified. Passing numerical tests does not establish visual correctness or validation against Tesla data. A Cursor-browser pass was completed 2026-10-18 after the procedural panel model replaced the STL loft: desktop front/side/rear/top views, cutaway, Launch playback, scrubbing and rewind, ghosts, Hop, Invert at 0° and 180°, WebGL getError 0, and 390px emulation (the field of view widens below a 1.6 aspect ratio so the car fits). Public URL: https://albert-gil.github.io/RoadsterLAB/?demo=1. Physical iOS Safari remains outstanding. The M1/M2 redesign was pushed to GitHub Pages on 2026-10-18 at the user's request.
 
 ## Source, deployment and collaboration
 
 - Inspect Git status before editing; preserve user changes and unrelated files.
 - Keep credentials out of source, logs, shell arguments and commits. Do not overwrite or force-push history.
-- Reuse the existing Site identity in `impulse/.openai/hosting.json` (`appgprj_6ad529f9afc48191b5bb6ed5f791fb24`). The verified public URL is GitHub Pages: https://albert-gil.github.io/TRoadster/. Do not invent additional unpublished URLs.
+- Reuse the existing Site identity in `impulse/.openai/hosting.json` (`appgprj_6ad529f9afc48191b5bb6ed5f791fb24`). The verified public URL is GitHub Pages: https://albert-gil.github.io/RoadsterLAB/. Do not invent additional unpublished URLs.
 - If publishing through Sites, follow its current workflow, preserving this root repository. Do not create duplicate Sites or silently replace the root Git history to satisfy a helper's checkout assumptions.
 - The app's current Library HTML and source ZIP are exports. When the user requests an update to an existing Library file, rebuild and replace that same Library identity rather than creating duplicates.
 - Prefer small, coherent changes. Keep engineering documentation aligned with behavior. Summarize changes, verification, and remaining limitations when handing work back.
@@ -340,3 +340,19 @@ Never present visible condensation, jet size/speed or pad interaction as calcula
 fluid results. Preserve four HOP_MOUNTS and unchanged solver effective area. Hop
 tracking leaves jet context beneath the car without valve-edge camera jumps.
 See impulse/docs/PLUME-REVIEW.md for local verification and open device checks.
+
+Turn showcase revision (2026-10-21): Corner overview uses a closer default zoom.
+Showcase examples use turnSweep=120 degrees in radians, while the normal editable
+Turn default stays unchanged. Optional turn.reveal is display state: smoothly fit
+both live car envelopes at the beginning, then pull back to the full road/runoff
+bounds. Keep the no-fan car included; do not invent offsets at coincident poses.
+Use the same reveal in the interactive tour, recorder and publication studio.
+
+Repository rename / publication audio (2026-10-21): canonical repository is
+Albert-Gil/RoadsterLAB and Pages path is /RoadsterLAB/. Keep workspace/folder paths,
+Site identity and internal simulation identifiers unchanged. recorder.js accepts
+an optional audioStream, clones its tracks and probes audio-capable codecs. The
+LinkedIn studio supplies a private SimulationAudio master/limiter stream with music
+and sample-driven effects, ending cleanup and background cancellation. Its audio
+request supersedes the earlier silent-publication-video direction. General exports
+without an audio stream remain silent; never capture a microphone or system audio.

@@ -8,7 +8,7 @@ contact mechanics in four interactive experiments. A procedural 3D vehicle,
 parameter workspace, force vectors, pressure-vessel cutaway and synchronized plots
 make the model visible while you explore it.
 
-[Live project](https://albert-gil.github.io/TRoadster/) · [Source](https://github.com/albert-gil/TRoadster) · [Google Scholar](https://scholar.google.com/citations?user=R_3V20cAAAAJ&hl=en)
+[Live project](https://albert-gil.github.io/RoadsterLAB/) · [Source](https://github.com/Albert-Gil/RoadsterLAB) · [Google Scholar](https://scholar.google.com/citations?user=R_3V20cAAAAJ&hl=en)
 
 ![RoadsterLAB interactive dashboard](impulse/docs/portfolio-preview.png)
 

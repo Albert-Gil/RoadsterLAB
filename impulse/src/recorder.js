@@ -13,9 +13,10 @@ export function videoLayout(format){
  const {width,height}=VIDEO_FORMATS[format]||VIDEO_FORMATS.landscape;
  return {width,height,portrait:height>width,scene:height>width?{x:40,y:170,w:1000,h:1190}:{x:48,y:116,w:1824,h:680}};
 }
-export function recordingType(Recorder=globalThis.MediaRecorder){
+export function recordingType(Recorder=globalThis.MediaRecorder,audio=false){
  if(!Recorder)return null;
- return ['video/mp4;codecs=avc1.420028','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(type=>Recorder.isTypeSupported(type))||null;
+ const types=audio?['video/mp4;codecs=avc1.420028,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']:['video/mp4;codecs=avc1.420028','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+ return types.find(type=>Recorder.isTypeSupported(type))||null;
 }
 export function wrapVideoText(ctx,text,width){
  const lines=[];let line='';
@@ -26,9 +27,9 @@ const equations={launch:'m dv/dt = F_tire + F_jet - drag - rolling',hop:'m d²y/
 
 export class ShowcaseRecorder{
  static supported(){return !!recordingType()&&typeof HTMLCanvasElement!=='undefined'&&typeof HTMLCanvasElement.prototype.captureStream==='function';}
- constructor(format,{onComplete=()=>{},onError=()=>{},animate=true}={}){
+ constructor(format,{onComplete=()=>{},onError=()=>{},animate=true,audioStream=null}={}){
   if(!ShowcaseRecorder.supported())throw new Error('Video recording is unavailable in this browser.');
-  this.layout=videoLayout(format);this.format=format;this.onComplete=onComplete;this.onError=onError;this.animate=animate;this.frames=0;this.lastDraw=-Infinity;this.chunks=[];
+  this.layout=videoLayout(format);this.format=format;this.onComplete=onComplete;this.onError=onError;this.animate=animate;this.audioStream=audioStream;this.frames=0;this.lastDraw=-Infinity;this.chunks=[];
   this.canvas=document.createElement('canvas');this.canvas.width=this.layout.width;this.canvas.height=this.layout.height;this.ctx=this.canvas.getContext('2d',{alpha:false});
   if(!this.ctx)throw new Error('Video composition is unavailable.');
   const holder=this.holder=document.createElement('div');holder.className='video-render-surface';holder.setAttribute('aria-hidden','true');
@@ -43,8 +44,10 @@ export class ShowcaseRecorder{
    if(typeof this.frameTrack?.requestFrame!=='function'){
     this.stream.getTracks().forEach(track=>track.stop());this.stream=this.canvas.captureStream(30);this.frameTrack=null;
    }
-   this.recorder=new MediaRecorder(this.stream,{mimeType:recordingType(),videoBitsPerSecond:8_000_000});
-   this.mime=this.recorder.mimeType||recordingType();this.recorder.ondataavailable=e=>{if(e.data.size)this.chunks.push(e.data);};
+   for(const track of this.audioStream?.getAudioTracks()||[])this.stream.addTrack(track.clone());
+   const mimeType=recordingType(globalThis.MediaRecorder,!!this.audioStream);
+   this.recorder=new MediaRecorder(this.stream,{mimeType,videoBitsPerSecond:8_000_000,audioBitsPerSecond:192_000});
+   this.mime=this.recorder.mimeType||mimeType;this.recorder.ondataavailable=e=>{if(e.data.size)this.chunks.push(e.data);};
    this.recorder.onerror=()=>this.fail('The browser could not encode this recording. Try again or use a different browser.');
    this.recorder.onstop=()=>{
     const blob=new Blob(this.chunks,{type:this.mime});this.release();
@@ -62,8 +65,7 @@ export class ShowcaseRecorder{
   const {ctx}=this,{width:w,height:h,scene:r,portrait}=this.layout;
   ctx.fillStyle='#0b1418';ctx.fillRect(0,0,w,h);ctx.drawImage(this.source,r.x,r.y,r.w,r.h);
   ctx.strokeStyle='#6b998448';ctx.lineWidth=2;ctx.strokeRect(r.x,r.y,r.w,r.h);
-  ctx.textBaseline='top';ctx.textAlign='left';ctx.fillStyle='#e4f2e9';ctx.font='600 46px Arial';ctx.fillText('Roadster',48,38);const brand=ctx.measureText('Roadster').width;ctx.fillStyle='#a6dfc9';ctx.font='600 35px Arial';ctx.fillText('LAB',50+brand,47);
-  ctx.fillStyle='#a8c5b8';ctx.font='18px Consolas, monospace';ctx.fillText('ALBERT GIL-ESMENDIA / ENGINEERING & SIMULATION',48,portrait?105:87);
+  ctx.textBaseline='top';ctx.textAlign='left';ctx.fillStyle='#e4f2e9';ctx.font='700 70px Arial';ctx.fillText('Roadster',48,27);const brand=ctx.measureText('Roadster').width;ctx.fillStyle='#a6dfc9';ctx.font='700 70px Arial';ctx.fillText('LAB',48+brand,27);
   if(!portrait){ctx.textAlign='right';ctx.fillStyle='#adcbbb';ctx.font='20px Consolas, monospace';ctx.fillText(`0${view.index+1} / 04  ${view.step.kind.toUpperCase()}   ·   T+${state.sample.t.toFixed(2)} s`,w-48,48);ctx.textAlign='left';}
   const y=portrait?1410:828;
   ctx.fillStyle='#a6dfc9';ctx.font='19px Consolas, monospace';ctx.fillText(`0${view.index+1} / 04 · ${view.step.kind.toUpperCase()}`,48,y);

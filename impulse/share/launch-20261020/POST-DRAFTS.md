@@ -2,9 +2,9 @@
 
 Author: Albert Gil-Esmendia
 
-Live lab: https://albert-gil.github.io/TRoadster/
+Live lab: https://albert-gil.github.io/RoadsterLAB/
 
-Source, equations and assumptions: https://github.com/Albert-Gil/TRoadster
+Source, equations and assumptions: https://github.com/Albert-Gil/RoadsterLAB
 
 ## LinkedIn draft
 
@@ -21,9 +21,9 @@ Behind the 3D scene are mass and energy balances, a consistent Peng–Robinson d
 
 The goal was to connect a clear visual experience with transparent engineering. All hardware inputs are illustrative assumptions, and the outputs are simulated results. The README explains the equations, numerical solution and model limits.
 
-Try it: https://albert-gil.github.io/TRoadster/
+Try it: https://albert-gil.github.io/RoadsterLAB/
 
-Code and physics: https://github.com/Albert-Gil/TRoadster
+Code and physics: https://github.com/Albert-Gil/RoadsterLAB
 
 #Engineering #Simulation #Thermofluids #VehicleDynamics
 
@@ -33,13 +33,13 @@ I built RoadsterLAB: a 3D vehicle-physics lab for fan-assisted grip, compressed-
 
 Real-gas blowdown, nozzle flow and vehicle dynamics. Illustrative inputs; simulated results.
 
-https://albert-gil.github.io/TRoadster/
+https://albert-gil.github.io/RoadsterLAB/
 
 ## Optional technical reply
 
 The model couples tank mass/energy balances, temperature-dependent heat input, a consistent Peng–Robinson air EOS and choked/unchoked nozzle expansion. Vehicle motion includes traction, fan power and contact limits.
 
-Equations and assumptions: https://github.com/Albert-Gil/TRoadster
+Equations and assumptions: https://github.com/Albert-Gil/RoadsterLAB
 
 ## Short portfolio description
 

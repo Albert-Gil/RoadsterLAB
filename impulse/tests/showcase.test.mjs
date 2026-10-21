@@ -26,5 +26,5 @@ test('showcase scrubbing deterministically restores the camera and presentation 
  assert.equal(showcaseFrame(showcaseStart(2)+5).camera,'invert-track');
  assert.equal(showcaseFrame(showcaseStart(2)).camera,'invert-field');
  assert.equal(showcaseFrame(showcaseStart(3)).camera,'turn-field');
- assert.equal(showcaseFrame(showcaseStart(3)+5).camera,'turn-focus');
+ assert.equal(showcaseFrame(showcaseStart(3)+5).camera,'turn-field');
 });

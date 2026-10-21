@@ -1,5 +1,11 @@
 # RoadsterLAB release preparation
 
+Canonical repository: https://github.com/Albert-Gil/RoadsterLAB
+Canonical Pages URL: https://albert-gil.github.io/RoadsterLAB/
+The repository was renamed on 21 October 2026, preserving its identity/history.
+Publication-studio captures now include the simulation audio master and a music
+bed. General exports without an explicitly supplied audio stream remain silent.
+
 This guide covers local packaging and GitHub Pages release preparation. The
 verified candidate includes the complete technical documentation. The user explicitly
 approved uploading its source/screenshots, committing to the public repository and
