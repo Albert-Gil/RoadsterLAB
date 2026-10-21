@@ -14,6 +14,12 @@ test('standalone artifact parses with isolated module scopes',()=>{
   assert.ok(script,'offline script must be embedded');
   assert.doesNotThrow(()=>new Script(script));
   assert.ok(!/^import /m.test(script),'offline artifact must not import local files');
+  const audioData=JSON.parse(script.match(/globalThis\.ROADSTERLAB_AUDIO_DATA=(\{[^\n]+\});/)?.[1]||'null');
+  assert.equal(Object.keys(audioData||{}).length,17,'standalone must embed every recording');
+  for(const [name,url] of Object.entries(audioData)){
+    assert.ok(url.startsWith('data:audio/wav;base64,'));
+    assert.deepEqual(Buffer.from(url.split(',')[1],'base64'),readFileSync(new URL(`../dist/assets/audio/${name}.wav`,import.meta.url)));
+  }
   const workerSource=readFileSync(new URL('../dist/standalone-worker.js',import.meta.url),'utf8');
   let received;
   const context=createContext({self:{postMessage:data=>{received=data;}}});

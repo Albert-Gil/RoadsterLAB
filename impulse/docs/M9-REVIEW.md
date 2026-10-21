@@ -67,3 +67,14 @@ After an approved build is available on the device:
    try automatic mode; its target/lead controls are under More variables.
 4. Turn: load Fan makes the corner. Compare 60, 100 and 160 km/h while holding
    steering fixed. Cars leaving the lane continue onto visual grass without wrecks.
+
+
+## Follow-up: optional Parameters and default-on sound (2026-10-20)
+
+Parameters now starts collapsed, with desktop space returned to the scene and
+telemetry. The existing nonmodal panel is revealed by its toggle; phone layout
+reveals it inline. Escape/close restore opener focus, presets preserve panel state,
+and Replay closes it. The experiment button/timeline sits directly below the scene.
+Sound defaults on, subject to browser autoplay; first interaction starts a suspended
+context, and explicit mute is remembered. This supersedes the earlier always-visible
+workspace and opt-in default described in the historical checks above.

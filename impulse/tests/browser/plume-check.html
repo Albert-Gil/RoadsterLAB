@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>RoadsterLAB plume review</title><style>body{background:#10231f;color:#d9eee2;font:14px Arial;margin:16px}button,select,a{background:#214c3c;border:1px solid #86b49d;color:#e3f3e7;padding:10px;margin:0 10px 10px 0}canvas{display:block;width:1120px;height:630px}pre{white-space:pre-wrap}</style><h1>RoadsterLAB · cold-gas visual review</h1><select id="case"><option value="launch">Launch · active</option><option value="side">Launch · side</option><option value="hop">Hop · rising</option><option value="low">Hop · near pad</option><option value="under">Hop · underside</option><option value="coast">Hop · valve closed</option></select><select id="size"><option value="wide">1120 × 630</option><option value="phone">390 × 460</option><option value="portrait">1080 × 1920</option></select><label><input type="checkbox" id="cut"> Cutaway / vectors</label><canvas tabindex="0" aria-label="Native cold-gas rendering"></canvas><a id="export">Export PNG</a><pre id="status">Preparing real solver examples…</pre><script type="module">
+import {Scene,coldGasVisual} from './scene.js';
+import {DEFAULTS,simulateLaunch,simulateHop,sampleAt} from './physics.js';
+import {hopSummary} from './hop.js';
+const canvas=document.querySelector('canvas'),scene=new Scene(canvas),c={...DEFAULTS};
+const launch=simulateLaunch(c,2),hop=simulateHop(c),summary=hopSummary(hop,c);
+function render(){
+ const kind=document.querySelector('#case').value,size=document.querySelector('#size').value,cutaway=document.querySelector('#cut').checked;
+ const [w,h]=size==='phone'?[390,460]:size==='portrait'?[1080,1920]:[1120,630];canvas.style.width=w+'px';canvas.style.height=h+'px';
+ const isHop=!['launch','side'].includes(kind),time=kind==='low'?.2:kind==='coast'?1.1:.45,sample=sampleAt(isHop?hop:launch,time);
+ scene.setCamera(isHop?(kind==='under'?'hop-under':'hop-track'):kind==='side'?'side':'focus');
+ const state={sample,c,experiment:isHop?'hop':'launch',mode:2,cutaway,vectors:cutaway,...(isHop?{hop:{...summary,damage:{wrecked:false,progress:0}}}:{entries:[{sample,mode:2,visible:true,status:'ACTIVE'}]})};
+ const before=performance.now();scene.render(state);
+ const meta={kind,size,time:sample.t,height:sample.y,flow:sample.flow,thrust:sample.thrust,visual:coldGasVisual(sample,isHop),webglError:scene.gl.getError(),submissionMs:+(performance.now()-before).toFixed(2),cutaway};
+ document.querySelector('#status').textContent=JSON.stringify(meta,null,2);
+ const link=document.querySelector('#export');link.href=canvas.toDataURL('image/png');link.download='roadsterlab-plume-'+kind+'-'+size+'.png';link.textContent='Export '+kind+' PNG';
+}
+document.querySelectorAll('select,input').forEach(el=>el.onchange=render);render();
+</script>

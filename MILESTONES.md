@@ -909,3 +909,110 @@ Publication authorization: the user explicitly answered yes on 2026-10-20 to
 uploading source/screenshots to the public Albert-Gil/TRoadster repository and
 updating GitHub Pages. The earlier automatic-review block is resolved by that
 explicit authorization. Retain the full physics cards, README and release guide.
+
+## Starbase-inspired scenery — 20 October 2026, local
+
+Implemented a native procedural sunrise campus in scenery.js, with rocket/tower,
+tanks, hangars, coastal ground/water and analytic sky/reflections. Both build paths
+and the Showcase/recording Scene include it. Car framing/poses and all physics are
+unchanged; the backdrop follows the Launch floating-origin transform correctly.
+Bright-sky HUD plates and collision-free phone/Showcase labels were reviewed.
+
+130/130 automated tests passed; nine focused renderer/scenery tests passed after
+the final geometry and underside-camera fixes. Fourteen desktop/narrow/cutaway
+browser captures returned WebGL error 0. The actual app's 390px layout, playback,
+scrubbing, camera controls, repeated Launch, CSV, Hop underside inspection,
+Showcase chapters/exit and served standalone were exercised. No new video was
+recorded and nothing was published. See impulse/docs/SCENERY-REVIEW.md for exact
+scope, screenshots and remaining physical-device/GPU/user-review limits.
+
+### Scenery polish — 20 October 2026 local / 21 October UTC
+
+Added linear-light material response, filmic display mapping, cool fill opposite
+the warm sunrise, clearer paint/glass reflections, height-derived projected car
+shadows, filtered road aggregate, concrete joints, decorative dunes and a connected
+tidal channel. Static scenery is 86,979 vertices / 13 material groups; no remote
+assets or runtime dependencies. Launch overview lifts as actual separation grows
+while retaining manual orbit with Auto frame off. Turn follow view is lower.
+
+Video export now carries fractional RAF timing and uses completed-frame requests
+where supported, retaining an automatic-capture fallback. Tests cover cadence,
+starting-frame capture, fallback track cleanup, dune clearance and frozen framing.
+134/134 tests passed; 20 final wide/narrow/cutaway renders returned WebGL error 0.
+Landscape/portrait H.264 files decode cleanly with monotonic timestamps; observed
+rates were 26.67 / 28.62 fps, below the 30 fps target. Recording cancellation clears
+the extra surface. Served standalone and actual 390px layout were checked.
+Physics source is unchanged. Physical iOS and final visual review remain open;
+this pass is local only. See impulse/docs/SCENERY-REVIEW.md for evidence/limits.
+
+
+## Local recorded audio integration — 2026-10-20
+
+Implemented the user-supplied 17-file ElevenLabs library across Launch, Invert, Hop
+and Turn. Pure audio-mapping.js uses existing speed/force/flow/fan/contact outputs;
+audio.js reuses decoded buffers and 11 persistent loops, gated transitions and
+supported impact one-shots. Music persists across modes/pause; separate music/effects
+volumes persist locally. Hidden pages and silent video export mute both. Preserved
+all original WAVs; prepared 11.31 MB of 48 kHz/16-bit browser assets with mono effects,
+loop crossfades and headroom. Standalone embeds the same recordings. Physics unchanged.
+
+Verification: 144 tests passed; all 17 files decoded in native browser audio;
+mode/lifecycle/mute checks passed. A native offline all-file overlap stress render
+peaked at 0.71014. Served/standalone, desktop/390 px controls and app mode playback
+checked, no observed browser errors. Real-device and subjective listening remain.
+
+The user subsequently confirmed Creator-plan ownership and licensing rights for
+the supplied recordings. RIGHTS.json now records that confirmation and the audio
+check passes. Pages retains check-audio-rights.mjs; local staging carries the rights
+status. See impulse/docs/AUDIO.md and impulse/share/audio-20261020/.
+No publication, deployment, Git write or social post.
+
+
+## Optional Parameters / playback placement / default sound — 2026-10-20
+
+User requested a clearer simulation/results view. Parameters is now hidden on
+initial load; the button opens a nonmodal side column on desktop and an inline
+panel on phones. Close/Escape returns opener focus; presets preserve panel state,
+opening pauses playback, and Replay closes the panel. Toggling preserves input
+values and inventory. Side-panel height follows available viewport/parent space.
+The main experiment button, rewind and timeline now sit directly under the scene,
+before the comparison strip and velocity/acceleration/distance telemetry. Closed
+wide layout uses full scene width and a compact four-column telemetry layout.
+
+Sound defaults on. If browser autoplay blocks a suspended context, the first real
+pointer/key interaction resumes it. Explicit mute persists in v3 preferences;
+legacy music/effects levels migrate without the former off-by-default policy.
+Wanted enable state remains separate from actual running state. No autoplay
+restriction is bypassed. Physics source hash remains
+1F5C4FD2C6FCAA400E7DACCB225DB62AA00FF0774C9C5DCD0425B2E2FA224762.
+
+Verification: 147 automated tests passed, including three new default-on/mute/
+legacy-migration checks; build and app/ui/audio/scene syntax checks passed. Browser
+1265 px desktop, 675 px intermediate and 390 px iframe layouts inspected. Verified
+panel toggle, close/Escape/focus, preset remount, edit-close-reopen, Replay close,
+open-pauses, remembered mute, reload and first-interaction audio startup. All four
+experiment playback/rewind paths retain the new order, with WebGL error 0 and no
+observed console warnings/errors. Evidence: impulse/share/workspace-20261020/.
+Physical iOS, assistive technology and subjective listening remain open. No
+publication, deployment or social post.
+
+
+## Prominent Parameters / cold-gas plumes — 2026-10-21
+
+Moved Parameters from the small scene legend into a large labeled button beside
+Launch/Replay, with 46 px desktop and 48 px phone targets. Enlarged the top-bar
+entry. Existing nonmodal panel behavior is preserved.
+
+Replaced the blue cone with white tapered cores, procedural turbulent clouds and
+height-dependent Hop ground spread, using the user's photos as visual references.
+All gas effects require actual delivered flow and thrust. Four Hop mounts and
+physics are unchanged. Hop tracking leaves room for the jets/pad. Effects use the
+simulation clock and clear on cutoff; plume geometry is illustrative, not CFD.
+
+Verification: 148 full-suite tests passed; final camera refinement passed all 14
+Hop/scene checks. Build/syntax checks passed. Thirteen native WebGL review renders
+returned error 0, including wide/narrow, cutoff, underside and cutaway. Same-time
+Hop exports were byte-identical. Actual desktop/390 px controls opened/closed with
+no horizontal overflow; Launch/Hop/Invert/Turn inspected with no browser warnings
+or errors observed. See impulse/docs/PLUME-REVIEW.md and share/plumes-20261021/.
+Physical devices and final visual review remain open. Local only; no publication.

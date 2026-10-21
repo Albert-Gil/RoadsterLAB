@@ -291,3 +291,52 @@ the extra Scene on completion/error/cancel. Preserve saved user setup/inventory.
 Include recorder.js and engineering.js in both served and standalone builds.
 release.mjs stages unique ignored dist/release folders, source/docs and SHA-256
 manifest; it never commits, tags, uploads or publishes. See docs/RELEASE.md.
+
+
+Recorded audio maintenance (2026-10-20 user-requested revision): audio.js now owns
+17 supplied ElevenLabs recordings, audio-assets.js catalog and pure audio-mapping.js
+perceptual mappings. The user authorized continuous music across pause/mode switches;
+this supersedes earlier pause-silence guidance for music only. Effects still stop on
+pause/seek/recompute/background; hidden pages and silent video export silence both.
+Music/effects volumes live in Tune and persist locally; fresh documents still need a
+gesture. Preserve loop phase across remounts. Actual Invert alongV/contact enables
+skid/surface sliding; Turn has no resolved tire slip, so saturation gets scrub only.
+Do not invent collisions for runoff or ordinary landings. Only supported WRECKED
+Hop/Invert ground contacts fire minor/major recordings, with the speed split explicitly
+perceptual. Build both served WAV assets and standalone embedded data URLs. Originals
+and derived audio must stay local while assets/audio/RIGHTS.json remains unconfirmed;
+Pages runs scripts/check-audio-rights.mjs; local staging records a rights notice. See docs/AUDIO.md.
+
+Audio rights confirmation (2026-10-20): the user confirmed their ElevenLabs Creator
+plan and full ownership/licensing rights for the supplied sounds. RIGHTS.json now
+records this confirmation and the audio-specific deployment check passes.
+Publication remains a separate project action; no audio update was published by
+recording this confirmation.
+
+
+Workspace revision (2026-10-20, explicit user request): Parameters are hidden on
+initial load. The nonmodal button toggles the desktop side column; phones reveal
+an inline panel below the scene. ui.js owns hidden/expanded state, close/Escape,
+focus return and listener disposal. Keep panel state across preset remounts, pause
+when opening, close on Replay, and preserve configuration/inventory on toggles.
+Transport belongs immediately after the scene, above telemetry. Closed desktop
+layout uses the full scene width. No blocking overlay or focus trap.
+
+Sound now defaults on per user request, superseding the former opt-in default.
+Attempt automatic startup only when the context is already allowed to run; otherwise
+resume on the first real pointer/key gesture. Distinguish wantedEnabled intent
+from actual running enabled state. v3 preferences remember explicit mute; migrate
+legacy volumes without importing the old off-by-default policy. Sound toggle must
+still mute while waiting for autoplay permission. Keep pause/visibility/export
+lifecycle and sample-based mappings unchanged.
+
+
+Plume/access revision (2026-10-21): keep the large labeled Parameters control beside
+Launch/Replay and the larger top-bar target. scene.js coldGasVisual gates white
+cores/clouds on actual delivered flow AND thrust. Camera-facing particle seeds and
+motion use simulation time so pause/scrub is deterministic. Hop ground spread is a
+height-limited artistic effect, omitted in underside inspection; cutoff clears it.
+Never present visible condensation, jet size/speed or pad interaction as calculated
+fluid results. Preserve four HOP_MOUNTS and unchanged solver effective area. Hop
+tracking leaves jet context beneath the car without valve-edge camera jumps.
+See impulse/docs/PLUME-REVIEW.md for local verification and open device checks.
