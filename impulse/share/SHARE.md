@@ -1,7 +1,7 @@
 # IMPULSE post kit
 
-Live lab: https://albert-gil.github.io/TRoadster/?demo=1  
-Capture / record: https://albert-gil.github.io/TRoadster/?demo=1&capture=1
+Live lab: https://albert-gil.github.io/RoadsterLAB/?demo=1  
+Capture / record: https://albert-gil.github.io/RoadsterLAB/?demo=1&capture=1
 
 Clips in this folder: `impulse-16x9.mp4` (landscape) and `impulse-9x16.mp4` (vertical). Independent-sim disclosure is on the end card and should stay in the caption.
 
@@ -19,7 +19,7 @@ What you are watching at 0.5×:
 
 Independent simulation. Illustrative parameters. Not Tesla specs.
 
-Try it: https://albert-gil.github.io/TRoadster/?demo=1
+Try it: https://albert-gil.github.io/RoadsterLAB/?demo=1
 
 ## X / Twitter
 
@@ -29,7 +29,7 @@ IMPULSE: SI physics + native WebGL, no frameworks. Ghost launch, tank blowdown, 
 
 Independent sim · illustrative params · not Tesla specs
 
-https://albert-gil.github.io/TRoadster/?demo=1
+https://albert-gil.github.io/RoadsterLAB/?demo=1
 
 First comment: Independent simulation with assumed vehicle numbers. It is not a Tesla digital twin and is not calibrated to a manufacturer acceleration claim.
 

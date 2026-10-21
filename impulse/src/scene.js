@@ -12,7 +12,7 @@ export const LANE_WIDTH=3.4;
 export const laneZ=m=>(1-m)*LANE_WIDTH;
 export function launchPlacements(entries,frameX=0){return entries.filter(e=>e.visible!==false).map(e=>({...e,x:e.sample.x-frameX,z:laneZ(e.mode)}));}
 const CAMERAS={
-  'turn-field':{yaw:2.2,elev:.98,zoom:6.6,shot:{}},
+  'turn-field':{yaw:2.2,elev:.98,zoom:5.8,shot:{}},
   'turn-focus':{yaw:1.05,elev:.32,zoom:6.6,shot:{}},
   'invert-field':{yaw:1.35,elev:.12,zoom:6.6,shot:{}},
   'invert-track':{yaw:1.35,elev:.04,zoom:6.6,shot:{}},
@@ -601,10 +601,16 @@ export class Scene {
       const old=this.meshes['turn-road'];if(old){gl.deleteBuffer(old.pb);gl.deleteBuffer(old.nb);}
       this.upload('turn-road',turnRoadMesh(track));this.turnRoadKey=key;
     }
-    const b=turn.bounds,target=focus?[sample.x,.6,sample.z]:[(b.minX+b.maxX)/2,.4,(b.minZ+b.maxZ)/2];
-    const bounds=focus?[-4.1,4.1].flatMap(x=>[-2.6,2.6].flatMap(z=>[0,2.2].map(y=>[sample.x+x,y,sample.z+z]))):[b.minX,b.maxX].flatMap(x=>[b.minZ,b.maxZ].flatMap(z=>[0,2].map(y=>[x,y,z])));
-    const yaw=this.yaw;if(focus)this.yaw-=sample.yaw;
-    const distance=this.fit(bounds,target,w/h)*this.zoom/6.6,{eye,vp}=this.camera(target,distance,w/h);this.vp=vp;this.dist=distance;this.yaw=yaw;
+    const b=turn.bounds,p=Number.isFinite(turn.reveal)?Math.max(0,Math.min(1,turn.reveal)):null;
+    const blend=p===null?1:p*p*(3-2*p),mix=(a,b)=>a+(b-a)*blend;
+    // Showcase starts around both live body envelopes, then reveals the full road.
+    // The full bounds contain both traces, so the moving frame keeps the no-fan car.
+    const pair={minX:Math.min(...entries.map(e=>e.sample.x))-3.8,maxX:Math.max(...entries.map(e=>e.sample.x))+3.8,minZ:Math.min(...entries.map(e=>e.sample.z))-3,maxZ:Math.max(...entries.map(e=>e.sample.z))+3};
+    const frame=p===null?b:Object.fromEntries(['minX','maxX','minZ','maxZ'].map(key=>[key,mix(pair[key],b[key])]));
+    const target=focus?[sample.x,.6,sample.z]:[(frame.minX+frame.maxX)/2,.5,(frame.minZ+frame.maxZ)/2];
+    const bounds=focus?[-4.1,4.1].flatMap(x=>[-2.6,2.6].flatMap(z=>[0,2.2].map(y=>[sample.x+x,y,sample.z+z]))):[frame.minX,frame.maxX].flatMap(x=>[frame.minZ,frame.maxZ].flatMap(z=>[0,2.2].map(y=>[x,y,z])));
+    const yaw=this.yaw,elevation=p===null||focus?this.elev:mix(.32,this.elev);if(focus)this.yaw-=sample.yaw;else if(p!==null)this.yaw=mix(1.05,yaw);
+    const distance=this.fit(bounds,target,w/h,elevation)*this.zoom/6.6,{eye,vp}=this.camera(target,distance,w/h,elevation);this.vp=vp;this.dist=distance;this.yaw=yaw;
     gl.uniform3fv(this.loc.uEye,eye);gl.uniform1f(this.loc.uTravel,0);gl.uniform1f(this.loc.uFogK,Math.max(1,distance/40));gl.uniform1f(this.loc.uLanes,0);
     gl.uniform3fv(this.loc.uShadows,new Float32Array([...entries.flatMap(e=>[e.sample.x,e.sample.z,.6]),0,0,0]));
     this.environment(eye);

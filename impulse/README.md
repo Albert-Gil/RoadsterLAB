@@ -2,7 +2,7 @@
 
 A dependency-free interactive engineering experiment: longitudinal launch, fan-assisted attachment, sliding and falling, a vertical cold-gas hop, and a grip-limited steering comparison. Original procedural WebGL vehicle, pressure-vessel cutaway, force vectors, timeline, telemetry, three-car comparisons, repeated launches, CSV export and shareable parameter presets.
 
-**Watch / Try:** [Live lab](https://albert-gil.github.io/TRoadster/?demo=1) · [Capture mode](https://albert-gil.github.io/TRoadster/?demo=1&capture=1)
+**Watch / Try:** [Live lab](https://albert-gil.github.io/RoadsterLAB/?demo=1) · [Capture mode](https://albert-gil.github.io/RoadsterLAB/?demo=1&capture=1)
 
 Built with Node 24, zero npm dependencies, RK4 gas/flight integration, analytic Invert/Turn segments, and native WebGL. All vehicle numbers are illustrative assumptions — not calibrated Tesla specifications.
 
@@ -412,7 +412,7 @@ power, electrical work, sealed-tank thermal state, lane departure time/side, exi
 
 ## Demonstration sequence
 
-Open the [live demo](https://albert-gil.github.io/TRoadster/?demo=1) or `?demo=1&capture=1` for a full-bleed recording layout.
+Open the [live demo](https://albert-gil.github.io/RoadsterLAB/?demo=1) or `?demo=1&capture=1` for a full-bleed recording layout.
 
 1. Start in Launch with the default assumptions. The demo link enables Ghosts and plays at 1×; the speed button cycles 1×, 0.25× and 0.5×.
 2. Rewind, enable Cutaway and Forces, replay the tank discharge.
@@ -432,7 +432,7 @@ Browser QA (2026-10-18, local `http://127.0.0.1:4173`): desktop ~766px and 390px
 
 ## Next milestones
 
-Live lab: https://albert-gil.github.io/TRoadster/?demo=1
+Live lab: https://albert-gil.github.io/RoadsterLAB/?demo=1
 
 - Regulated gas delivery and wall heat transfer (deferred).
 - Hop planar attitude dynamics and structural contact/impact dynamics remain deferred. Optional vertical landing braking and cosmetic touchdown damage are implemented locally.
@@ -757,6 +757,11 @@ open. Images: `docs/visual-launch-focus.png` and `docs/visual-mobile.png`.
 
 
 ### Guided showcase
+
+The Turn chapter uses a 120° corner. Its camera starts close to both cars and
+smoothly pulls back as the corner develops, keeping the no-fan runoff visible.
+The normal Turn experiment retains its editable sweep and has a closer Corner
+overview. Camera reveal is presentation state and never changes the trajectories.
 
 Choose **Showcase** in the top bar for a 36-second tour: Launch → Hop → Invert →
 Turn. All four example setups are calculated before the tour starts. Chapters have

@@ -906,7 +906,7 @@ local, awaiting explicit approval to upload screenshots/source and update Pages.
 
 
 Publication authorization: the user explicitly answered yes on 2026-10-20 to
-uploading source/screenshots to the public Albert-Gil/TRoadster repository and
+uploading source/screenshots to the public Albert-Gil/RoadsterLAB repository and
 updating GitHub Pages. The earlier automatic-review block is resolved by that
 explicit authorization. Retain the full physics cards, README and release guide.
 
@@ -998,6 +998,13 @@ publication, deployment or social post.
 
 
 ## Prominent Parameters / cold-gas plumes — 2026-10-21
+
+Follow-up publication revision: Corner overview has a closer default zoom. The
+in-app and LinkedIn showcase examples now use a 120° Turn sweep, with close opening
+framing around both live cars and a smooth pullback to the full corner/runoff.
+The normal Turn sweep remains editable with its original default. Updated source,
+standalone build and publication materials locally. No full regression suite or
+deployment audit was run, per the user's request for a focused materials pass.
 
 Moved Parameters from the small scene legend into a large labeled button beside
 Launch/Replay, with 46 px desktop and 48 px phone targets. Enlarged the top-bar

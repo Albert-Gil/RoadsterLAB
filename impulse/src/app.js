@@ -342,7 +342,7 @@ function videoSceneState(){
  if(experiment==='launch')base.entries=runs.map((r,i)=>({...comparisonSample(r,t),mode:i,visible:true}));
  if(experiment==='hop')base.hop={...hopData,stopped:t>=duration()-1e-8,damage:hopDamage(hopData,t)};
  if(experiment==='invert')base.invert={...run.invert,damage:invertDamage(run,t)};
- if(experiment==='turn'){base.entries=runs.map((r,i)=>({...turnSample(r,t),mode:i,visible:true}));base.sample=base.entries[1].sample;base.turn={track:comparison.track,bounds:comparison.bounds,focus:1};}
+ if(experiment==='turn'){base.entries=runs.map((r,i)=>({...turnSample(r,t),mode:i,visible:true}));base.sample=base.entries[1].sample;base.turn={track:comparison.track,bounds:comparison.bounds,focus:1,reveal:showcaseFrame(showcase.clock).fraction};}
  return base;
 }
 function videoControls(recording){
@@ -418,7 +418,7 @@ function turnAnalysis(){return `<section class="hop-analysis turn-analysis" aria
 function renderTurnSamples(){
  if(!comparison)return;
  const entries=comparison.runs.map((r,i)=>({...turnSample(r,t),mode:i}));
- scene?.render({sample:entries[turnFocus].sample,c:activeConfig,experiment:'turn',mode:turnFocus,cutaway,vectors,entries,turn:{track:comparison.track,bounds:comparison.bounds,focus:turnFocus}});positionVesselLabel();
+ scene?.render({sample:entries[turnFocus].sample,c:activeConfig,experiment:'turn',mode:turnFocus,cutaway,vectors,entries,turn:{track:comparison.track,bounds:comparison.bounds,focus:turnFocus,reveal:showcase&&!showcase.preparing?showcaseFrame(showcase.clock).fraction:undefined}});positionVesselLabel();
 }
 function updateTurn(){
  if(!comparison)return;const selected=comparison.runs[turnFocus],state=turnSample(selected,t),s=state.sample,info=selected.turn;
