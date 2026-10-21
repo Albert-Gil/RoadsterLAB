@@ -27,12 +27,13 @@ node --experimental-strip-types --test tests/*.test.*
 ## Source map
 
 - `src/physics.ts`: pure SI-based simulation engine; typed parameters and results.
-- `src/scene.js`: native WebGL renderer with analytic studio reflections, directional lighting, soft contact shadows, and an original procedural vehicle. The body is lofted from designed character lines with creased panels; glass, pillars, door gaps, vents, light bars and skirts are exact projected panel cuts. Proportions were checked offline against photos and a reference STL, which the app never loads.
+- `src/scene.js`: native WebGL renderer with analytic sunrise reflections, directional lighting, soft contact shadows, and an original procedural vehicle. The body is lofted from designed character lines with creased panels; glass, pillars, door gaps, vents, light bars and skirts are exact projected panel cuts. Proportions were checked offline against photos and a reference STL, which the app never loads.
+- `src/scenery.js`: decorative Starbase-inspired rocket, lattice tower, tanks, hangars, dunes and tidal channel. Original static geometry is batched by material, with a procedural sunrise sky and terrain detail. Scenery stays in world coordinates during Launch; the sky follows the camera. No image textures, third-party runtime assets or dependencies are required. Linear-light material shading, soft projected shadows and filmic display mapping are artistic optical approximations. This is an artistic setting, not a site reconstruction; scenery does not change vehicle forces, friction, terrain interaction or collisions.
 - `scripts/render-ref.mjs`, `scripts/section-ref.mjs`, `scripts/measure-ref.mjs`: optional offline renders, sections and measurements for comparing `carParts()` with a local reference STL.
 - `src/app.js`: application state, controls, playback, telemetry and CSV export.
 - `src/turn.js`: comparison colors, grip/trajectory plots, road mesh and deterministic impact state.
 - `src/invert.js`: dynamic Invert plots, world-pose reconstruction and cosmetic impact state.
-- `src/audio.js`: opt-in Web Audio sonification of simulated speed, tire load and thrust.
+- `src/audio.js`: recorded Web Audio layers with default-on startup; see `docs/AUDIO.md`.
 - `src/style.css`: responsive interface and reduced-motion preference support.
 - `tests/physics.test.ts`: conservation, limiting cases and time-step convergence.
 - `scripts/build.mjs`: emits browser JavaScript with Node's TypeScript stripping.
@@ -89,7 +90,7 @@ the supported Launch model. No vehicle result is calibrated to a Tesla claim.
 ### Quick test: thrust delivery
 
 In **Hop**, choose **Smooth valve / bell nozzle**, then press Play. The **Thrust
- delivery** controls are beside the scene (below it on phones). Try one change
+ delivery** controls are in the optional Parameters panel (below the scene on phones). Try one change
 at a time: opening time 0 vs 0.06 s, feed loss 0 vs 8%, expansion 1 vs 1.15×.
 The vessel analysis shows live valve travel, nozzle-feed pressure and exit speed;
 the valve disk and nozzle schematic follow the same sampled state.
@@ -446,12 +447,14 @@ Node.js 24 or newer is required. Rebuild and refresh after editing source. Stop 
 server with Ctrl+C. Alternatively, open `impulse/dist/roadsterlab.html` directly;
 sharing requires the hosted or local-server version.
 
-Click **Sound off** to enable synthesized audio, then launch. The electric motor
-pitch follows vehicle speed and its level follows tire-force demand; filtered
-noise follows cold-gas thrust. These are stylized effects, not recordings or an
-acoustic Tesla model. Audio is muted by default, fades on pause/scrub/end, and is
-muted while the page is hidden. Playback rate changes event duration, not the
-speed-to-pitch mapping. Invert is silent. Browser/system volume controls the level.
+Sound defaults to on, starting automatically when allowed or with the first user
+interaction when autoplay is blocked. Explicit mute is remembered. Music
+continues across pauses and mode changes; effects follow the selected car.
+**Parameters → Sound settings** provides independent music/effects volumes; zero
+mutes either. Both buses silence in the background. See the current
+[Simulation-Driven Audio System](../README.md#simulation-driven-audio-system) and
+[technical audio guide](docs/AUDIO.md). The user has confirmed Creator-plan ownership/licensing rights; the audio-specific
+deployment block is cleared. The update has not been published.
 
 Regression checks: `node --experimental-strip-types --test tests/*.test.*`
 (or `npm test` where npm is configured normally). Manual acceptance: compare all three Launch modes;
@@ -677,8 +680,12 @@ by this integration pass.
 
 ## Parameter workspace and M9 review
 
-**Parameters** now lives beside the scene on desktop and below the scene on phones.
-The top-bar button and **Change parameters** link jump to it without covering the car.
+**Parameters** is hidden by default. A large labeled button beside Launch/Replay
+and a top-bar button toggle a nonmodal side panel on desktop. On phones it opens
+below the scene and scrolls into view. Close with **×**, the top-bar toggle or Escape;
+focus returns to the opener. Opening pauses playback; Replay closes the panel and
+returns to the vehicle. Presets keep the open panel and restore focus. The experiment
+button and timeline now sit immediately below the scene, before telemetry.
 The workspace explains where to start, offers complete example setups, and places a
 short explanation next to every input. Sliders and editable numeric values stay in
 sync; arrow keys adjust sliders in their displayed increments. Numeric fields retain
@@ -729,8 +736,13 @@ with cool fill light, long reflection strips and restrained warm highlights.
 Asphalt and grass have subtle variation. Ground shadows follow each car's heading;
 Hop pad and Turn asphalt receive them too. Turn edge accents are flat painted marks,
 with no barrier or collision response. Hop has clearer pad corner markings.
-Cold-gas plumes use tapered translucent jets with subtle sampled-time bands rather
-than stacked rings; their presence and size follow actual thrust and flow.
+Cold-gas plumes now use narrow white cores and expanding, turbulent translucent
+clouds, inspired by the supplied visual references. Their presence and intensity
+follow delivered thrust and mass flow. Hop adds a low spreading cloud when the
+illustrative jet envelope reaches the pad; its tracking camera includes more space
+beneath the car. These are deterministic presentation effects, not predictions of
+condensation, jet dimensions, fluid velocity or ground interaction. Cutoff clears
+the effect immediately. See [PLUME-REVIEW.md](docs/PLUME-REVIEW.md).
 
 Launch **Focus car** isolates the selected car; **Track overview** and **Side view**
 retain the comparison. Lower camera angles and 800 ms smooth transitions use the
@@ -780,17 +792,10 @@ The pressure-vessel callout is projected from the same body transform as the
 cutaway cylinders. It follows Launch separation, Hop altitude, Invert rotation,
 Turn heading, camera orbit and zoom, and hides if its anchor leaves the frame.
 
-With Sound enabled, a wrecked Hop touchdown or supported Invert ground impact
-plays one synthesized thud/crunch with a short metal tail. The existing master
-volume and output limiter apply. Intact landings, Turn runoff, model-limit stops
-and paused scrubbing do not trigger it. Replaying a wreck can trigger it again;
-pause, rewind, parameter changes, muting and backgrounding stop the sound. This
-is cosmetic sonification, with no change to the damage rule or physical solver.
-
-
-The current color palette pairs pearl white, deep lagoon teal and crimson vehicle
-paint with graphite/teal panels, mint controls and coral actions. Plot lines and
-scenario labels use lighter shades of the same hues for legibility. Wreck audio is
-a deterministic 1.55-second collision transient: chassis thump, panel crumpling,
-glass fragments and scattered debris, with a short room tail. It is generated once
-when sound is enabled, then played through the existing master gain and limiter.
+The current sample-based audio system supersedes the historical synthesized
+wreck/jet implementation. Supported WRECKED Hop/Invert ground contact plays a
+minor/major recording according to a documented perceptual speed split. Intact
+landings, Turn runoff, unresolved limits and scrubbing never trigger collisions.
+All lifecycle behavior, full mode allocations and asset provenance are documented
+in [AUDIO.md](docs/AUDIO.md). The pearl/lagoon/crimson vehicle and graphite/teal UI
+palette remain unchanged.

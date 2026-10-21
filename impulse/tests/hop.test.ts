@@ -42,7 +42,9 @@ test('Hop renderer keeps metre-scale height, follows altitude, and fits the full
     const hop={peakHeight:30,apex:{t:3,height:30}},sample={x:0,y:24,vy:-8,v:8,thrust:0,gas:100};
     scene.setCamera('hop-track');scene.render({sample,c:DEFAULTS,experiment:'hop',mode:2,hop});
     assert.equal(roots.at(-1)[13],24);assert.equal(scene.canvas.dataset.hopVelocity,'-8');
-    const projected=scene.project([0,24.65,0]);assert.ok(projected);assert.ok(Math.abs(projected[1]-250)<1);
+    const projected=scene.project([0,24.65,0]);assert.ok(projected);assert.ok(projected[1]<250&&projected[1]>100,'tracked vehicle leaves readable space below for its jets');
+    scene.render({sample:{...sample,y:3},c:DEFAULTS,experiment:'hop',mode:2,hop});
+    assert.ok(scene.project([0,0,0]),'near-pad tracking includes the ground interaction');
     scene.setCamera('hop-field');scene.render({sample,c:DEFAULTS,experiment:'hop',mode:2,hop});
     assert.ok(scene.project([0,0,0]));assert.ok(scene.project([0,30+1.5,0]));
     assert.equal(roots.at(-1)[13],24);
@@ -57,8 +59,14 @@ test('four Hop mounts remain visible as hardware without flow; zero flow draws n
  scene.car(root,false,sample,DEFAULTS,2,'hop');
  const hardware=calls.length;assert.equal(hardware,12);
  calls.length=0;scene.car(root,false,{...sample,flow:40,thrust:30000},DEFAULTS,2,'hop');
- assert.equal(calls.length,hardware+4);
  const plumes=calls.filter(call=>call[0]==='plume');
+ assert.equal(plumes.length,4);
+ assert.equal(calls.filter(call=>call[0]==='gas-cloud').length,4,'each mount has a turbulent cloud as well as its core');
+ assert.equal(calls.filter(call=>call[0]==='ground-cloud').length,1,'near-pad exhaust has one shared ground cloud');
  assert.equal(new Set(plumes.map(call=>[call[1][0],call[1][2]].join(','))).size,4);
  for(const call of plumes)assert.ok(call[1][1]<.12,'all exhaust points down from the nozzles');
+ calls.length=0;scene.car(root,false,{...sample,y:30,flow:40,thrust:30000},DEFAULTS,2,'hop');
+ assert.equal(calls.filter(call=>call[0]==='ground-cloud').length,0,'jets do not invent pad interaction when out of reach');
+ calls.length=0;scene.car(root,false,{...sample,flow:0,thrust:30000},DEFAULTS,2,'hop');
+ assert.equal(calls.length,hardware,'residual force without delivered flow must not draw exhaust');
 });

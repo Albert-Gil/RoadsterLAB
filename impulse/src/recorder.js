@@ -2,6 +2,13 @@ import {Scene} from './scene.js';
 import {SHOWCASE_DURATION} from './showcase.js';
 
 export const VIDEO_FORMATS={landscape:{width:1920,height:1080},portrait:{width:1080,height:1920}};
+// Carry fractional RAF time rather than restarting a 33.3 ms delay after each draw.
+// This keeps 60/80 Hz displays near the 30 fps target without burst catch-up draws.
+export function recordingFrameTime(now,previous=-Infinity){
+ if(!Number.isFinite(previous))return now;
+ const interval=1000/30,steps=Math.floor((now-previous+.1)/interval);
+ return steps>0?previous+steps*interval:null;
+}
 export function videoLayout(format){
  const {width,height}=VIDEO_FORMATS[format]||VIDEO_FORMATS.landscape;
  return {width,height,portrait:height>width,scene:height>width?{x:40,y:170,w:1000,h:1190}:{x:48,y:116,w:1824,h:680}};
@@ -30,19 +37,26 @@ export class ShowcaseRecorder{
  }
  start(){
   try{
-   this.stream=this.canvas.captureStream(30);this.recorder=new MediaRecorder(this.stream,{mimeType:recordingType(),videoBitsPerSecond:8_000_000});
+   this.stream=this.canvas.captureStream(0);this.frameTrack=this.stream.getVideoTracks()[0];
+   // Explicit capture follows the completed composition; independent browser
+   // sampling can otherwise drop renders when its 30 Hz clock is out of phase.
+   if(typeof this.frameTrack?.requestFrame!=='function'){
+    this.stream.getTracks().forEach(track=>track.stop());this.stream=this.canvas.captureStream(30);this.frameTrack=null;
+   }
+   this.recorder=new MediaRecorder(this.stream,{mimeType:recordingType(),videoBitsPerSecond:8_000_000});
    this.mime=this.recorder.mimeType||recordingType();this.recorder.ondataavailable=e=>{if(e.data.size)this.chunks.push(e.data);};
    this.recorder.onerror=()=>this.fail('The browser could not encode this recording. Try again or use a different browser.');
    this.recorder.onstop=()=>{
     const blob=new Blob(this.chunks,{type:this.mime});this.release();
     if(!this.cancelled){if(blob.size&&this.frames>1)this.onComplete({blob,mime:this.mime,extension:this.mime.includes('mp4')?'mp4':'webm',frames:this.frames,...this.layout});else this.onError('No video frames were recorded.');}
    };
-   this.recorder.start(1000);this.started=true;
+   this.recorder.start(1000);this.started=true;this.frameTrack?.requestFrame();
   }catch(error){this.release();throw error;}
  }
  draw(state,view,rows,now=performance.now()){
-  if(this.cancelled||this.finishing||now-this.lastDraw<1000/30&&!view.done)return;
-  this.lastDraw=now;
+  const frameTime=recordingFrameTime(now,this.lastDraw);
+  if(this.cancelled||this.finishing||frameTime===null&&!view.done)return;
+  this.lastDraw=frameTime??now;
   if(this.camera!==view.camera){if(this.camera)this.scene.transitionCamera(view.camera,this.animate);else this.scene.setCamera(view.camera);this.camera=view.camera;}
   this.scene.advanceCamera(now);this.scene.render(state);
   const {ctx}=this,{width:w,height:h,scene:r,portrait}=this.layout;
@@ -65,10 +79,10 @@ export class ShowcaseRecorder{
   });
   ctx.fillStyle='#a9cbbc';ctx.font=portrait?'23px Consolas, monospace':'20px Consolas, monospace';ctx.fillText(equations[view.step.kind],48,portrait?h-110:h-76);
   ctx.font='16px Consolas, monospace';ctx.fillStyle='#9eb7ab';ctx.fillText('INDEPENDENT MODEL · ILLUSTRATIVE INPUTS · NOT TESLA PERFORMANCE DATA',48,h-40);
-  ctx.fillStyle='#263e35';ctx.fillRect(48,h-15,w-96,3);ctx.fillStyle='#b1dfc4';ctx.fillRect(48,h-15,(w-96)*view.clock/SHOWCASE_DURATION,3);this.frames++;
+  ctx.fillStyle='#263e35';ctx.fillRect(48,h-15,w-96,3);ctx.fillStyle='#b1dfc4';ctx.fillRect(48,h-15,(w-96)*view.clock/SHOWCASE_DURATION,3);this.frames++;this.frameTrack?.requestFrame();
  }
  finish(){if(this.finishing||this.cancelled)return;this.finishing=true;this.finishTimer=setTimeout(()=>{if(this.recorder?.state==='recording')this.recorder.stop();},100);}
  fail(message){this.cancel();this.onError(message);}
  cancel(){this.cancelled=true;clearTimeout(this.finishTimer);if(this.recorder?.state==='recording')this.recorder.stop();this.release();}
- release(){if(this.released)return;this.released=true;this.stream?.getTracks().forEach(track=>track.stop());this.scene?.dispose();this.holder?.remove();this.chunks.length=0;}
+ release(){if(this.released)return;this.released=true;this.stream?.getTracks().forEach(track=>track.stop());this.frameTrack=null;this.scene?.dispose();this.holder?.remove();this.chunks.length=0;}
 }

@@ -26,7 +26,7 @@ calibrated to Tesla performance data and is not an official Tesla simulator.
 | **Turn** | Can the same speed and steering stay inside the lane? | Two independent constant-speed bicycle paths with a friction-circle curvature cap and grass runoff. |
 
 1. Select an experiment and a camera.
-2. Use **Parameters** beside the scene on desktop, or below it on phones. Start with
+2. Click **Parameters** to open the optional side panel (below the scene on phones). Start with
    a preset; the nearby hints explain which variables matter.
 3. Change a slider or enter a numeric value. Results recalculate at the same paused
    simulation time; `--` denotes a pending calculation.
@@ -76,9 +76,59 @@ Download the video before exiting the tour. Cancel, backgrounding or Exit stops 
 recording; Exit restores the saved experiment, parameters, time and tank state.
 
 Physics is independent of animation/recording rate. Camera moves, paint, plumes,
-debris and opt-in synthesized sound are presentation effects, not CFD or structural
-simulation. Enable **Sound** to hear speed/jet sonification and one-shot wreck
-impacts during normal experiment playback.
+debris and conceptual sound are presentation effects, not CFD or structural
+simulation. Enable **Sound** for the simulation-driven audio system described below.
+
+Parameters are hidden on initial load, leaving the scene and results full-width.
+The large **Parameters** button beside Launch/Replay toggles the nonmodal panel;
+the top bar provides another entry. **×** or **Escape** closes it.
+Opening it pauses playback. Replay closes it and returns to the vehicle. The main
+experiment button and timeline sit directly under the scene, above live telemetry.
+
+## Simulation-Driven Audio System
+
+The 17 supplied ElevenLabs recordings now form shared, simulation-driven layers.
+They are conceptual effects, **not actual Tesla recordings or validated acoustic
+predictions**. Sound defaults to on; open **Parameters → Sound settings** for separate
+music/effects volumes (zero mutes either). Preferences persist locally. Music keeps
+its phase across modes and pauses; hidden pages and silent video export mute both.
+
+| Mode | Sound allocation and governing quantities |
+| --- | --- |
+| Launch | Three speed-blended motor bands; speed-dependent aero; actual gas force/flow drives thrust start/loop/stop; fan operating power and leakage airflow drive suction/leakage; traction-limited status adds scrub. |
+| Invert | Dominant suction start/loop/stop from actual supported suction/power; orifice airflow drives leakage; contact load and relative deck sliding drive surface/scrub/skid; speed drives aero. No powered-wheel model. |
+| Hop | Dominant thrust start/loop/stop from delivered force/flow; vertical speed drives aero. No airborne road drivetrain or tire sounds. |
+| Turn | Steady speed-hold motor/aero; subtle selected-case fan/leakage; combined drive/lateral friction utilization drives progressive scrub. No invented tire-slip dynamics or collision sounds for grass runoff. |
+
+The motor uses equal-power blends at 0/25/60 m/s with modest pitch variation; these
+are perceptual speed mappings, not calculated RPM. Startup/shutdown recordings fire
+on state edges, crossfading into sustained loops. Leakage follows the existing
+orifice flow, including electrical-budget clamps; surface sounds require actual
+Invert contact/sliding. Turn provides a grip-capped geometric path but no solved
+slip angle/ratio, so its saturation adds scrub without asserting skid dynamics.
+Only supported WRECKED Hop/Invert ground contacts trigger minor/major impact files;
+ordinary landings, scrubbing and unresolved model limits remain free of impacts.
+
+One centralized Web Audio manager reuses decoded buffers and 11 persistent loop
+voices. Smoothed gain automation, separate buses, music ducking, compression and a
+bounded safety stage control the mix. Music ducks for thrust/major collisions.
+Recordings load when automatic audio startup is allowed, or after the first user
+interaction; explicit mute is remembered and missing files degrade gracefully.
+Original stereo 48 kHz/16-bit WAVs are preserved. Processed WAVs retain stereo for
+music/aero/major wreck, use mono elsewhere, crossfade loop boundaries and apply
+conservative RMS/peak levels. Browser assets total 11.31 MB; standalone HTML embeds
+them for offline use. No runtime dependencies or physical models were changed.
+
+Adjust `AUDIO_MIX` in `impulse/src/audio-mapping.js`; replace recordings through
+`impulse/scripts/prepare-audio.py`, then rebuild. The complete file allocation,
+physical inputs, sound-design thresholds, processing catalog, lifecycle and
+listening checklist are in [the audio guide](impulse/docs/AUDIO.md).
+
+**Audio licensing confirmed:** the user confirmed Creator-plan ownership and
+licensing rights for the supplied sounds. `impulse/assets/audio/RIGHTS.json` records
+the confirmation, and the audio deployment check passes. Credit: ElevenLabs.
+Subjective listening and physical iOS testing remain open; this update has not
+been published.
 
 ## The reduced-order model
 
@@ -337,12 +387,13 @@ not the currently edited setup.
 | `impulse/src/physics.ts` | SI states, forces, thermodynamics, integration, events and CSV. |
 | `impulse/scripts/air-eos-template.js` | Canonical consistent dry-air EOS. |
 | `impulse/src/scene.js` | Native WebGL, procedural car, cameras and world-anchored labels. |
+| `impulse/src/scenery.js` | Original Starbase-inspired campus meshes, sunrise sky and coastal materials; decorative only. |
 | `impulse/src/app.js`, `ui.js`, `tuning.js` | Controls, playback, retained setups and result summaries. |
 | `impulse/src/engineering.js` | On-page equation/assumption cards and author credit. |
 | `impulse/src/showcase.js`, `recorder.js` | Tour clock, chapter shots and fixed-frame video composition. |
 | `impulse/src/simulation-client.js`, `simulation-worker.js` | Cached background computations and stale-result protection. |
 | `impulse/src/plots.js`, `vessel.js`, `hop.js`, `invert.js`, `turn.js` | Experiment presentation and synchronized analysis. |
-| `impulse/src/audio.js` | Opt-in synthesized speed/jet/wreck sound; no physics dependency. |
+| `impulse/src/audio.js` | Opt-in sample engine, persistent loops, event gates and independent music/effects buses. |
 
 From `impulse/`, `node scripts/release.mjs` builds local release folders with the
 static website, standalone HTML, source snapshot, this physics guide, release notes

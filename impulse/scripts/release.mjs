@@ -6,6 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 
 const app=fileURLToPath(new URL('../',import.meta.url)),repo=resolve(app,'..');
+const audioRights=JSON.parse(await readFile(join(app,'assets','audio','RIGHTS.json'),'utf8'));
 execFileSync(process.execPath,['scripts/build.mjs'],{cwd:app,stdio:'inherit'});
 const stamp=new Date().toISOString().replace(/[:.]/g,'-');
 const output=join(app,'dist','release',`roadsterlab-${stamp}`);
@@ -23,12 +24,13 @@ async function tree(from,to){
 for(const item of await readdir(join(app,'dist'),{withFileTypes:true})){
  if(item.isFile()&&/\.(html|js|css)$/.test(item.name))await copy(join(app,'dist',item.name),join(site,item.name));
 }
-for(const folder of ['src','scripts','tests','docs'])await tree(join(app,folder),join(source,'impulse',folder));
+await tree(join(app,'dist','assets'),join(site,'assets'));
+for(const folder of ['src','scripts','tests','docs','assets'])await tree(join(app,folder),join(source,'impulse',folder));
 for(const name of ['README.md','AGENTS.md','MILESTONES.md'])await copy(join(repo,name),join(source,name));
 for(const name of ['README.md','index.html','package.json'])await copy(join(app,name),join(source,'impulse',name));
 await copy(join(repo,'README.md'),join(site,'README.md'));
 await tree(join(app,'docs'),join(site,'impulse','docs'));
-await writeFile(join(output,'START-HERE.txt'),`RoadsterLAB local release candidate\n\nOffline: open web/roadsterlab.html.\nWeb hosting: upload the contents of web/.\nSource: see source/README.md for build commands and physics equations.\nRelease procedure: source/impulse/docs/RELEASE.md.\nDraft release notes: source/impulse/docs/RELEASE-NOTES.md.\n\nIndependent model; illustrative inputs, not Tesla performance data.\nThis folder has not been published.\n`);
+await writeFile(join(output,'START-HERE.txt'),`RoadsterLAB local release candidate\n\n${audioRights.redistributionConfirmed?'Audio rights confirmation is recorded.':'AUDIO RIGHTS UNCONFIRMED: LOCAL REVIEW ONLY. Do not upload this package, source recordings or embedded HTML until redistribution rights are confirmed.'}\n\nOffline: open web/roadsterlab.html.\nWeb hosting: after rights confirmation and publication approval, upload the contents of web/.\nSource: see source/README.md for build commands and physics equations.\nRelease procedure: source/impulse/docs/RELEASE.md.\nDraft release notes: source/impulse/docs/RELEASE-NOTES.md.\n\nIndependent model; illustrative inputs, not Tesla performance data.\nThis folder has not been published.\n`);
 const hashes=[];
 async function hashTree(folder){
  for(const item of (await readdir(folder,{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){

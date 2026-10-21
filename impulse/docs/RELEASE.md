@@ -5,6 +5,12 @@ verified candidate includes the complete technical documentation. The user expli
 approved uploading its source/screenshots, committing to the public repository and
 updating GitHub Pages on 2026-10-20.
 
+On 2026-10-21 the user approved proceeding with the finished scenery/audio,
+parameter-access and plume update, GitHub Pages publication and fresh portfolio
+clips. Social posting remains excluded. The release comparison preserves existing
+main history and leaves the physics source unchanged. The candidate passes 148
+automated checks; current visual/access evidence is in PLUME-REVIEW.md.
+
 ## What travels with the release
 
 - Static website and self-contained `roadsterlab.html` (plus `impulse.html` alias).
@@ -13,6 +19,9 @@ updating GitHub Pages on 2026-10-20.
   assumptions, numerical methods, usage and limitations. Include it in both the
   web and source folders; do not strip the technical sections for a portfolio cut.
 - On-page **How the model works** cards, author credit and source link.
+- Procedural Starbase-inspired scenery (`scenery.js`) in both build paths. The
+  rocket, tower, buildings, shore and sunrise are original decorative geometry
+  and shading, not an accurate site reconstruction or additional physics model.
 - [Release notes](RELEASE-NOTES.md) and a SHA-256 artifact manifest.
 - Optional landscape/portrait clips downloaded from Showcase. Keep these outside
   the source snapshot; review the recorded results and captions before posting.
@@ -33,7 +42,7 @@ updating GitHub Pages on 2026-10-20.
 
 The README expands every row with equations and constants. Display pressure is
 **barg**, internal pressure absolute; Turn angles are radians internally. Rendering,
-plumes, damage and synthesized sound must never be described as CFD, FEA, or measured
+plumes, damage and conceptual sound must never be described as CFD, FEA, or measured
 Tesla behavior. All current hardware/performance inputs are illustrative assumptions.
 
 ## Build and verify
@@ -100,3 +109,12 @@ remain with the author.
 After approval, review the complete Git diff, commit the intended source changes,
 and use the existing GitHub Pages workflow. Confirm the deployed page and actual
 artifact URLs before announcing the release. No new deployment identity is needed.
+
+
+## Supplied audio redistribution gate (2026-10-20)
+
+The user confirmed Creator-plan ownership and licensing rights for the supplied
+library on 2026-10-20. `assets/audio/RIGHTS.json` records the confirmation;
+`node scripts/check-audio-rights.mjs` passes. Pages retains this check, and local
+release staging records the rights status in START-HERE.txt. Publication remains
+a separate project action. See [AUDIO.md](AUDIO.md).

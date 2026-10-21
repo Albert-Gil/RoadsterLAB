@@ -1,10 +1,11 @@
 import {hopPosition,HOP_MOUNTS} from './hop.js';
 import {invertPose} from './invert.js';
 import {turnRoadMesh} from './turn.js';
+import {sceneryMeshes,sceneryShader} from './scenery.js';
 export const SCENARIO_COLORS = [
-  {name:'Electric only',hex:'#e1e8e5',plot:'#c8d8d2',dash:'1 3.5',rgb:[.84,.87,.85]},
-  {name:'Fan assisted',hex:'#69d9b8',plot:'#69d9b8',dash:'7 4',rgb:[.055,.46,.37]},
-  {name:'Thrust assisted',hex:'#f3939b',plot:'#f3939b',dash:'',rgb:[.72,.065,.11]}
+  {name:'Electric only',hex:'#e1e8e5',plot:'#c8d8d2',dash:'1 3.5',rgb:[.88,.91,.89]},
+  {name:'Fan assisted',hex:'#69d9b8',plot:'#69d9b8',dash:'7 4',rgb:[.055,.61,.49]},
+  {name:'Thrust assisted',hex:'#f3939b',plot:'#f3939b',dash:'',rgb:[.84,.085,.15]}
 ];
 // Launch lanes: electric nearest the default camera, thrust farthest. Metres, scene +z.
 export const LANE_WIDTH=3.4;
@@ -12,13 +13,13 @@ export const laneZ=m=>(1-m)*LANE_WIDTH;
 export function launchPlacements(entries,frameX=0){return entries.filter(e=>e.visible!==false).map(e=>({...e,x:e.sample.x-frameX,z:laneZ(e.mode)}));}
 const CAMERAS={
   'turn-field':{yaw:2.2,elev:.98,zoom:6.6,shot:{}},
-  'turn-focus':{yaw:1.25,elev:.62,zoom:6.6,shot:{}},
+  'turn-focus':{yaw:1.05,elev:.32,zoom:6.6,shot:{}},
   'invert-field':{yaw:1.35,elev:.12,zoom:6.6,shot:{}},
   'invert-track':{yaw:1.35,elev:.04,zoom:6.6,shot:{}},
   'hop-field':{yaw:1.18,elev:.2,zoom:6.6,shot:{}},
   'hop-under':{yaw:1.02,elev:-.42,zoom:6.6,shot:{}},
   'hop-track':{yaw:1.18,elev:.2,zoom:6.6,shot:{}},
-  field:{yaw:2.25,elev:.31,zoom:6.6,shot:{yaw:2.08,elev:.26,zoom:6.2}},
+  field:{yaw:.95,elev:.08,zoom:6.6,shot:{yaw:1.08,elev:.12,zoom:6.2}},
   side:{yaw:Math.PI/2,elev:.42,zoom:6.6,shot:{yaw:Math.PI/2,elev:.42,zoom:6.4}},
   focus:{yaw:.82,elev:.18,zoom:6.6,shot:{yaw:.72,elev:.16,zoom:6.1}}
 };
@@ -28,13 +29,30 @@ function mul(a,b){const o=Array(16).fill(0);for(let c=0;c<4;c++)for(let r=0;r<4;
 function matrix(p=[0,0,0],s=[1,1,1],r=[0,0,0]){const [x,y,z]=r,c=Math.cos,d=Math.sin;const rx=[1,0,0,0,0,c(x),d(x),0,0,-d(x),c(x),0,0,0,0,1],ry=[c(y),0,-d(y),0,0,1,0,0,d(y),0,c(y),0,0,0,0,1],rz=[c(z),d(z),0,0,-d(z),c(z),0,0,0,0,1,0,0,0,0,1];let m=mul(mul(rz,ry),rx);for(let j=0;j<3;j++)for(let i=0;i<3;i++)m[j*4+i]*=s[j];m[12]=p[0];m[13]=p[1];m[14]=p[2];return m;}
 const sub=(a,b)=>a.map((x,i)=>x-b[i]),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm=a=>{const l=Math.hypot(...a)||1;return a.map(x=>x/l);},dot=(a,b)=>a.reduce((v,x,i)=>v+x*b[i],0);
 function view(eye,target){const z=norm(sub(eye,target)),x=norm(cross([0,1,0],z)),y=cross(z,x);return [x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1];}
-function perspective(aspect,n=.1,far=160){const f=Math.min(1,aspect/1.6)/Math.tan(.5/2);return [f/aspect,0,0,0,0,f,0,0,0,0,(far+n)/(n-far),-1,0,0,2*far*n/(n-far),0];}
+function perspective(aspect,n=.1,far=4000){const f=Math.min(1,aspect/1.6)/Math.tan(.64/2);return [f/aspect,0,0,0,0,f,0,0,0,0,(far+n)/(n-far),-1,0,0,2*far*n/(n-far),0];}
 function triangles(faces){const p=[],n=[];for(const f of faces){for(let i=1;i<f.length-1;i++){const a=f[0],b=f[i],c=f[i+1],v=norm(cross(sub(b,a),sub(c,a)));p.push(...a,...b,...c);n.push(...v,...v,...v);}}return {p,n};}
 function box(){const v=[[-.5,-.5,-.5],[.5,-.5,-.5],[.5,.5,-.5],[-.5,.5,-.5],[-.5,-.5,.5],[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5]];return triangles([[0,3,2,1],[4,5,6,7],[0,1,5,4],[3,7,6,2],[1,2,6,5],[0,4,7,3]].map(f=>f.map(i=>v[i])));}
 function cylinder(){const f=[],seg=48;for(let i=0;i<seg;i++){const a=i/seg*Math.PI*2,b=(i+1)/seg*Math.PI*2;const p=t=>[Math.cos(t),Math.sin(t)];const [x,y]=p(a),[u,v]=p(b);f.push([[x,y,-.5],[u,v,-.5],[u,v,.5],[x,y,.5]],[[0,0,.5],[x,y,.5],[u,v,.5]],[[0,0,-.5],[u,v,-.5],[x,y,-.5]]);}return triangles(f);}
 
-// Open, tapered exhaust surface. No caps: avoids stacked opaque-looking rings.
-function coldPlume(){const faces=[];for(let i=0;i<32;i++){const a=i/32*Math.PI*2,b=(i+1)/32*Math.PI*2;const ring=(angle,z)=>[Math.cos(angle)*(.18+.82*z),Math.sin(angle)*(.18+.82*z),z];faces.push([ring(a,0),ring(b,0),ring(b,1),ring(a,1)]);}return triangles(faces);}
+// Crossed soft sheets form the narrow jet. The cloud bank is camera-facing
+// procedural puffs; no textures, simulation history or frame-dependent particles.
+function coldPlume(){const faces=[];for(let plane=0;plane<3;plane++)for(let i=0;i<18;i++){
+ const a=plane*Math.PI/3,z=i/18,next=(i+1)/18,point=(side,t)=>{const r=.2+.8*t;return [Math.cos(a)*r*side,Math.sin(a)*r*side,t];};
+ faces.push([point(-1,z),point(1,z),point(1,next),point(-1,next)]);
+}return triangles(faces);}
+function plumeCloud(count=48){const p=[],n=[];for(let i=0;i<count;i++){
+ const angle=i*2.399963,r=Math.sqrt((i*.61803398875)%1)*.72,center=[Math.cos(angle)*r,Math.sin(angle)*r,(i+.5)/count],size=.18+((i*.75487766)%1)*.15;
+ for(const [x,y] of [[-1,-1],[1,-1],[1,1],[-1,-1],[1,1],[-1,1]]){p.push(...center);n.push(x,y,size);}
+}return {p,n};}
+export function coldGasVisual(s,vertical=false){
+ const active=Number.isFinite(s.flow)&&Number.isFinite(s.thrust)&&s.flow>0&&s.thrust>0;
+ if(!active)return {active:false,core:0,length:0,spread:0,opacity:0,ground:0};
+ const level=Math.min(1,.65*Math.sqrt(s.flow/80)+.35*Math.sqrt(s.thrust/100000));
+ const nominal=(vertical?3:4)+(vertical?7:9)*level,height=Math.max(.01,(s.y||0)+.01);
+ return {active:true,core:Math.min(.7+2.4*level,vertical?height:Infinity),
+  length:vertical?Math.min(nominal,height):nominal,spread:.4+level*(vertical?.75:1.3),
+  opacity:.18+.17*level,ground:vertical?Math.max(0,1-height/nominal)*level:0};
+}
 
 // Procedural body. Scene axes: +x forward, +y up, +z right; metres. Proportions follow a fan STL of the
 // new Roadster, details follow public photos; every line below is a design choice, not Tesla data.
@@ -298,8 +316,28 @@ export function carParts(){
   CAR.WHEELS.forEach((w,i)=>{for(const side of [1,-1]){const M=matrix([w.x,w.y,w.z*side],[1,1,side]);for(const part of ['spin','fixed'])for(const [m,d] of Object.entries(g.wheels[i][part]))out.push({...transformMesh(d,M),color:CAR.WHEEL_MATS[m].c,emit:0});}});
   return out;
 }
-const vertex=`attribute vec3 aPosition;attribute vec3 aNormal;uniform mat4 uMVP;uniform mat4 uModel;varying vec3 vNormal;varying vec3 vWorld;varying float vLocalY;varying float vLocalZ;void main(){vWorld=(uModel*vec4(aPosition,1.)).xyz;vNormal=mat3(uModel)*aNormal;vLocalY=aPosition.y;vLocalZ=aPosition.z;gl_Position=uMVP*vec4(aPosition,1.);}`;
-const fragment=`precision highp float;varying vec3 vNormal;varying vec3 vWorld;varying float vLocalY;varying float vLocalZ;uniform vec4 uColor;uniform vec3 uEye;uniform float uMetal;uniform float uFloor;uniform float uTravel;uniform float uRough;uniform float uEmit;uniform float uSpec;uniform float uMirror;uniform float uAO;uniform vec3 uShadows[3];uniform float uLanes;uniform float uFogK;uniform float uPlume;uniform float uTime;uniform vec3 uShadowYaw;
+const vertex=`attribute vec3 aPosition;attribute vec3 aNormal;uniform mat4 uMVP;uniform mat4 uModel;uniform vec3 uEye;uniform float uPlume;uniform float uTime;varying vec3 vNormal;varying vec3 vWorld;varying vec3 vLocal;varying vec2 vPlumeUV;varying float vPlumeAge;varying float vLocalY;varying float vLocalZ;
+void main(){
+ vec3 local=aPosition;vPlumeUV=aNormal.xy;vPlumeAge=aPosition.z;
+ if(uPlume>1.5){
+  float age=fract(aPosition.z+uTime*.62+fract(uPlume)*3.);vPlumeAge=age;
+  if(uPlume>2.5){
+   vec2 direction=normalize(aPosition.xy+vec2(.001));
+   local=vec3(direction.x*(.12+age)*(1.+abs(aPosition.x)),.05+.16*sin(age*3.14159),direction.y*(.12+age)*(1.+abs(aPosition.y)));
+  }else{
+   float spread=.08+pow(age,1.25);vec2 swirl=vec2(sin(age*13.+aPosition.x*21.),cos(age*11.+aPosition.y*23.))*.055*age;
+   local=vec3(aPosition.xy*spread+swirl,age);
+  }
+  vec3 center=(uModel*vec4(local,1.)).xyz,toEye=normalize(uEye-center);
+  vec3 right=normalize(cross(abs(toEye.y)>.95?vec3(1.,0.,0.):vec3(0.,1.,0.),toEye)),up=cross(toEye,right);
+  float radius=length(uModel[0].xyz)*aNormal.z*(.2+1.3*sqrt(age));
+  vec3 offset=(right*aNormal.x+up*aNormal.y)*radius;
+  local+=vec3(dot(offset,uModel[0].xyz)/dot(uModel[0].xyz,uModel[0].xyz),dot(offset,uModel[1].xyz)/dot(uModel[1].xyz,uModel[1].xyz),dot(offset,uModel[2].xyz)/dot(uModel[2].xyz,uModel[2].xyz));
+ }
+ vLocal=local;vWorld=(uModel*vec4(local,1.)).xyz;vNormal=mat3(uModel)*aNormal;vLocalY=local.y;vLocalZ=local.z;gl_Position=uMVP*vec4(local,1.);
+}`;
+const fragment=`precision highp float;varying vec3 vLocal;varying vec2 vPlumeUV;varying float vPlumeAge;varying vec3 vNormal;varying vec3 vWorld;varying float vLocalY;varying float vLocalZ;uniform vec4 uColor;uniform vec3 uEye;uniform float uMetal;uniform float uFloor;uniform float uTravel;uniform float uRough;uniform float uEmit;uniform float uSpec;uniform float uMirror;uniform float uAO;uniform vec3 uShadows[3];uniform float uLanes;uniform float uFogK;uniform float uPlume;uniform float uTime;uniform vec3 uShadowYaw;uniform vec3 uShadowHeight;
+${sceneryShader}
 // Painted line of half-width hw metres, kept at least about a pixel wide when distant.
 float paint(float d,float hw){
 #ifdef DERIV
@@ -309,47 +347,92 @@ float paint(float d,float hw){
 #endif
   float w=max(hw,fw*.75);return (1.-smoothstep(w,w+fw,abs(d)))*min(1.,hw/w+.3);
 }
+// GGX-style artistic surface shading. Lighting is not a calibrated optical model.
+vec3 siteLight(vec3 n,vec3 v,vec3 l,vec3 albedo,vec3 f0,float rough,float metal){
+ vec3 h=normalize(v+l);float nl=max(dot(n,l),0.),nv=max(dot(n,v),.001),nh=max(dot(n,h),0.),vh=max(dot(v,h),0.);
+ float a=rough*rough,a2=a*a,d=nh*nh*(a2-1.)+1.;float distribution=a2/max(3.141593*d*d,.00001);
+ float k=pow(rough+1.,2.)/8.,geometry=nv/(nv*(1.-k)+k)*nl/(nl*(1.-k)+k);
+ vec3 f=f0+(1.-f0)*pow(1.-vh,5.);
+ return ((1.-f)*(1.-metal)*albedo/3.141593+distribution*geometry*f/max(4.*nl*nv,.001)*uSpec)*nl;
+}
 void main(){
+ if(uPlume>.5){
+  float alpha=0.;vec3 color=vec3(.84,.89,.91);
+  if(uPlume>1.5){
+   vec2 uv=vPlumeUV;float age=vPlumeAge;
+   float noise=siteNoise(uv*3.6+vec2(age*17.,-uTime*1.8+fract(uPlume)*13.));
+   float detail=siteNoise(uv*8.3+vec2(age*23.,uTime*.7));
+   float edge=length(uv)+(noise-.5)*.28+(detail-.5)*.10;
+   alpha=(1.-smoothstep(.25,.98,edge))*smoothstep(0.,.09,age)*(1.-smoothstep(.68,1.,age));
+   alpha*=.6+.4*noise;alpha*=smoothstep(.015,.10,vWorld.y);
+   color*=.73+.24*noise+.12*(1.-uv.y*.5);
+  }else{
+   float z=clamp(vLocalZ,0.,1.),r=length(vLocal.xy)/(.2+.8*z);
+   float noise=siteNoise(vec2(z*18.-uTime*11.,r*5.+fract(uPlume)*17.));
+   alpha=pow(max(0.,1.-r*r),1.6)*smoothstep(0.,.018,z)*(1.-smoothstep(.2,1.,z));
+   alpha*=.75+.25*noise;color=vec3(.91,.94,.95);
+  }
+  if(alpha<.008)discard;
+  gl_FragColor=vec4(siteDisplay(color),uColor.a*alpha);return;
+ }
+ if(uFloor>9.5){gl_FragColor=vec4(siteDisplay(siteSky(normalize(vWorld-uEye))),1.);return;}
   vec3 n=normalize(vNormal);if(!gl_FrontFacing)n=-n;n*=uMirror;
   vec3 v=normalize(uEye-vWorld);
-  vec3 l=normalize(vec3(.45,.82,.38));
-  vec3 fill=normalize(vec3(-.65,.38,-.58));
+  vec3 l=normalize(vec3(-.56,.12,-.81));
+  vec3 fill=normalize(vec3(.62,.58,.57));
   float ndl=max(dot(n,l),0.);
   float ndf=max(dot(n,fill),0.);
   float hemi=n.y*.5+.5;
   float ao=mix(1.,.5+.5*smoothstep(.04,.62,vLocalY),uAO);
-  vec3 albedo=uColor.rgb;
-  vec3 color=albedo*(.12+.23*hemi+.74*ndl+.18*ndf)*ao;
-  float sheen=pow(max(dot(n,normalize(l+v)),0.),mix(90.,12.,uRough))*mix(.12,.012,uRough);
+  vec3 albedo=siteLinear(uColor.rgb);float rough=max(.10,uRough),metal=uMetal;
+  vec3 f0=mix(vec3(.045),albedo,metal);
+  vec3 color=albedo;
+  if(uFloor<.5){
+  color=albedo*mix(vec3(.23,.19,.14),vec3(.60,.73,.91),hemi)*mix(.82,.20,metal);
+  color+=siteLight(n,v,l,albedo,f0,rough,metal)*vec3(3.6,2.72,1.85);
+  color+=siteLight(n,v,fill,albedo,f0,max(.32,rough),metal)*vec3(1.35,1.65,2.10);
+  color*=ao;
   float rim=pow(1.-max(dot(n,v),0.),4.);
-  color+=(vec3(sheen)*(1.-uMetal*.2)*(1.+uSpec*2.)+uSpec*rim*.08*hemi)*ao;
-  // Analytic studio environment: broad sky, long softboxes and warm bounce.
-  // Reflection bands reveal the existing curved panels without an image asset.
+  // Analytic sunrise environment, with broad highlights that reveal the body panels.
   vec3 reflection=reflect(-v,n);
-  vec3 environment=mix(vec3(.018,.025,.03),vec3(.24,.32,.39),smoothstep(-.12,.85,reflection.y));
+  vec3 environment=mix(vec3(.085,.09,.075),siteSky(reflection),smoothstep(-.12,.15,reflection.y));
   float strip=exp(-pow((reflection.y-.56-.16*reflection.x)/(.045+uRough*.15),2.));
   float softbox=pow(max(dot(reflection,normalize(vec3(-.32,.88,.34))),0.),mix(75.,8.,uRough));
   float kicker=pow(max(dot(reflection,normalize(vec3(.2,.32,-.93))),0.),mix(110.,12.,uRough));
-  environment+=vec3(.85,.91,1.)*(strip*.58+softbox*.66);
-  environment+=vec3(.95,.72,.48)*kicker*.42;
+  environment+=vec3(.85,.91,1.)*(strip*.40+softbox*.45);
+  environment+=vec3(.95,.72,.48)*kicker*.32;
   float horizon=exp(-pow((reflection.y+.12)/(.055+uRough*.12),2.));
   environment+=vec3(.62,.76,.86)*horizon*.28;
   float fresnel=.04+.96*pow(1.-max(dot(n,v),0.),5.);
-  float reflectivity=uSpec*mix(.30,.72,uMetal);
-  color=color*(1.-reflectivity*.18)+environment*reflectivity*(.50+fresnel);
-  color+=vec3(.34,.52,.65)*rim*ndf*.10;
+  vec3 reflectionTint=mix(vec3(1.),albedo,metal);
+  float reflectivity=uSpec*mix(.22,.82,metal)*(1.-rough*.45);
+  color+=environment*reflectionTint*reflectivity*(.35+fresnel)*ao;
+  color+=vec3(.20,.32,.48)*rim*ndf*.12*uSpec;
   color+=albedo*uEmit;
-  if(uFloor>.5){
+  }
+  if(uFloor>.5&&uFloor<3.5){
     float wx=vWorld.x+uTravel,wz=vWorld.z;
     float gx=step(.988,fract(wx*.45));float gz=step(.988,fract(wz*.45));
     float fade=exp(-length(vWorld.xz)*.038/uFogK);
     if(uFloor>1.5&&uFloor<2.5){
-      float grain=fract(sin(dot(floor(vWorld.xz*18.),vec2(127.1,311.7)))*43758.5453);
-      float patches=sin(wx*.55)*sin(wz*.43);
-      color=vec3(.058,.105,.064)+vec3(.012,.024,.01)*(grain+patches*.35);
+      float grain=siteNoise(vec2(wx,wz)*8.),patches=siteFbm(vec2(wx,wz)*.055);
+      color=mix(vec3(.085,.13,.045),vec3(.17,.22,.08),patches)+vec3(.015,.02,.005)*(grain-.5);
     }else{
-    float grain=fract(sin(dot(floor(vec2(wx,wz)*75.),vec2(127.1,311.7)))*43758.5453);
-    color=vec3(.052,.065,.073)+vec3((grain-.5)*.008)*exp(-length(uEye-vWorld)*.05);
+    vec2 ground=vec2(wx,wz);float grain=siteNoise(ground*70.),aggregate=siteNoise(ground*12.),patches=siteNoise(ground*.065);
+    float detail=exp(-length(uEye-vWorld)*.025),grainFilter=1.;
+#ifdef DERIV
+    float footprint=max(fwidth(wx),fwidth(wz));
+    detail*=1.-smoothstep(.5,1.8,footprint*12.);grainFilter=1.-smoothstep(.3,1.4,footprint*70.);
+#endif
+    color=mix(vec3(.063,.076,.080),vec3(.090,.10,.10),patches)+vec3((grain-.5)*.018*grainFilter+(aggregate-.5)*.024)*detail;
+    color+=vec3(.020,.016,.011)*pow(max(dot(reflect(-v,n),l),0.),18.);
+    if(uFloor<1.5){
+      vec3 concrete=mix(vec3(.27,.28,.25),vec3(.34,.33,.28),patches)+vec3((grain-.5)*.015)*detail;
+      float joints=max(paint((fract(wx/4.5+.5)-.5)*4.5,.012),paint((fract(wz/4.5+.5)-.5)*4.5,.012));
+      concrete*=1.-joints*.20;
+      if(uLanes>.5){float outside=smoothstep(6.,6.12,abs(wz));color=mix(color,concrete,outside);color=mix(color,vec3(.15,.17,.075),smoothstep(14.,17.,abs(wz)));}
+      else color=concrete;
+    }
     float grid=(paint((fract(wx*.2+.5)-.5)*5.,.009)+paint((fract(wz*.2+.5)-.5)*5.,.009));
     if(uFloor<2.5)color+=vec3(.018,.026,.028)*grid*fade;
     if(uFloor<2.5){
@@ -379,27 +462,42 @@ void main(){
       float core=exp(-pow(local.x/1.9,4.)-pow(local.y/.72,4.));
       float tire=exp(-pow((local.x-1.325)/.28,2.)-pow((abs(local.y)-.79)/.18,2.))
                 +exp(-pow((local.x+1.455)/.28,2.)-pow((abs(local.y)-.815)/.18,2.));
-      color*=1.-clamp(sh.z*(shadow*.78+core*.24+tire*.24),0.,.90);
+      vec2 castOffset=vec2(.56,.81)*uShadowHeight[i]/.12;
+      float along=clamp(dot(delta,castOffset)/max(dot(castOffset,castOffset),.01),0.,1.);
+      vec2 castLocal=mat2(ca,sa,-sa,ca)*(delta-castOffset*along);
+      vec2 cq=abs(castLocal)-vec2(1.88,.74);
+      float castSD=length(max(cq,0.))+min(max(cq.x,cq.y),0.);
+      float penumbra=.18+along*.65+uShadowHeight[i]*.08;
+      float castShadow=1.-smoothstep(-.1,penumbra,castSD);
+      float shade=sh.z*(shadow*.55+core*.25+tire*.27)+castShadow*sh.z*.46;
+      color*=1.-clamp(shade,0.,.86);
     }
   }
-  float fog=1.-exp(-length(uEye-vWorld)*.012/uFogK);color=mix(color,vec3(.035,.048,.06),fog);
-  float plumeFade=pow(1.-clamp(vLocalZ,0.,1.),1.7)*pow(abs(dot(n,v)),.35);
-  if(uPlume>.5){
-    float bands=.86+.14*sin(vLocalZ*32.-uTime*34.);
-    color=mix(vec3(.46,.70,.78),vec3(.90,.98,1.),pow(1.-clamp(vLocalZ,0.,1.),2.));
-    plumeFade*=bands;
+  if(uFloor>3.5&&uFloor<4.5){
+    vec2 ground=vec2(vWorld.x+uTravel,vWorld.z);float scrub=siteFbm(ground*.025);
+    color=mix(vec3(.28,.25,.14),vec3(.12,.20,.065),smoothstep(.27,.72,scrub));
+    color+=vec3(.025,.018,.008)*(siteNoise(ground*.8)-.5);
+    color*=.78+.28*max(n.y,0.)+.20*max(dot(n,l),0.);
   }
-  color=color/(vec3(1.)+max(color-vec3(.9),vec3(0.)));
-  gl_FragColor=vec4(color,uColor.a*mix(1.,plumeFade,uPlume));
+  if(uFloor>4.5&&uFloor<5.5){
+    vec2 ground=vec2(vWorld.x+uTravel,vWorld.z);
+    float ripple=sin(ground.x*1.4+sin(ground.y*.6))*sin(ground.y*2.2);
+    vec3 waterReflection=siteSky(reflect(-v,normalize(vec3(ripple*.012,1.,ripple*.018))));
+    color=mix(vec3(.16,.31,.34),waterReflection,.52)+vec3(.17,.13,.07)*pow(max(dot(reflect(-v,n),l),0.),85.);
+  }
+  float fog=1.-exp(-length(uEye-vWorld)*.00032);
+  color=mix(color,siteSky(normalize(vec3(vWorld.x-uEye.x,.025,vWorld.z-uEye.z))),fog);
+  gl_FragColor=vec4(siteDisplay(color),uColor.a);
 }`;
 export class Scene {
   constructor(canvas){this.canvas=canvas;this.dirty=true;const gl=canvas.getContext('webgl',{antialias:true,alpha:false,preserveDrawingBuffer:true});if(!gl)throw new Error('WebGL is unavailable. Try enabling hardware acceleration.');this.gl=gl;this.cut=false;this.frameX=0;this.dist=6.6;this.setCamera('focus');
     const shader=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};
     const deriv=gl.getExtension('OES_standard_derivatives')?'#extension GL_OES_standard_derivatives : enable\n#define DERIV 1\n':'';
     const p=gl.createProgram();gl.attachShader(p,shader(gl.VERTEX_SHADER,vertex));gl.attachShader(p,shader(gl.FRAGMENT_SHADER,deriv+fragment));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));gl.useProgram(p);this.program=p;
-    this.loc={};for(const x of ['uMVP','uModel','uColor','uEye','uMetal','uFloor','uTravel','uRough','uEmit','uSpec','uMirror','uAO','uShadows','uLanes','uFogK','uPlume','uTime','uShadowYaw'])this.loc[x]=gl.getUniformLocation(p,x);
+    this.loc={};for(const x of ['uMVP','uModel','uColor','uEye','uMetal','uFloor','uTravel','uRough','uEmit','uSpec','uMirror','uAO','uShadows','uLanes','uFogK','uPlume','uTime','uShadowYaw','uShadowHeight'])this.loc[x]=gl.getUniformLocation(p,x);
     this.ap=gl.getAttribLocation(p,'aPosition');this.an=gl.getAttribLocation(p,'aNormal');this.meshes={};
-    this.upload('box',box());this.upload('cyl',cylinder());this.upload('plume',coldPlume());
+    this.upload('box',box());this.upload('cyl',cylinder());this.upload('plume',coldPlume());this.upload('gas-cloud',plumeCloud());this.upload('ground-cloud',plumeCloud(60));
+    this.scenery=sceneryMeshes();for(const mesh of this.scenery)this.upload(mesh.name,mesh);
     const geo=CAR.build();this.bodyMats=Object.keys(geo.body);for(const m of this.bodyMats)this.upload('car:'+m,geo.body[m]);
     this.wheelMeshes=geo.wheels.map((wp,i)=>{const list=[];for(const part of ['spin','fixed'])for(const [m,d] of Object.entries(wp[part])){this.upload(`w${i}:${part}:${m}`,d);list.push({mesh:`w${i}:${part}:${m}`,m,spin:part==='spin'});}return list;});
     gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
@@ -432,10 +530,10 @@ export class Scene {
     for(const key of ['yaw','elev','zoom'])this[key]=from[key]+(to[key]-from[key])*k;
     if(u===1)this.cameraTween=null;
   }
-  camera(target,d,aspect){const eye=[target[0]+Math.cos(this.yaw)*d,target[1]+Math.sin(this.elev)*d,target[2]+Math.sin(this.yaw)*d];return {eye,vp:mul(perspective(aspect,Math.max(.1,d*.012),Math.max(160,d*8)),view(eye,target))};}
+  camera(target,d,aspect,elevation=this.elev){const eye=[target[0]+Math.cos(this.yaw)*d,target[1]+Math.sin(elevation)*d,target[2]+Math.sin(this.yaw)*d];return {eye,vp:mul(perspective(aspect,Math.max(.1,Math.min(4,d*.008)),Math.max(4000,d*8)),view(eye,target))};}
   // Smallest camera distance that keeps every point inside the HUD-safe part of the frame.
-  fit(points,target,aspect){
-    const inside=d=>{const m=this.camera(target,d,aspect).vp;for(const [x,y,z] of points){const w=m[3]*x+m[7]*y+m[11]*z+m[15];if(w<=0)return false;const cx=(m[0]*x+m[4]*y+m[8]*z+m[12])/w,cy=(m[1]*x+m[5]*y+m[9]*z+m[13])/w;if(Math.abs(cx)>.84||cy>.56||cy<-.7)return false;}return true;};
+  fit(points,target,aspect,elevation=this.elev){
+    const inside=d=>{const m=this.camera(target,d,aspect,elevation).vp;for(const [x,y,z] of points){const w=m[3]*x+m[7]*y+m[11]*z+m[15];if(w<=0)return false;const cx=(m[0]*x+m[4]*y+m[8]*z+m[12])/w,cy=(m[1]*x+m[5]*y+m[9]*z+m[13])/w;if(Math.abs(cx)>.84||cy>.56||cy<-.7)return false;}return true;};
     let lo=3,hi=8000;if(!inside(hi))return hi;for(let i=0;i<30;i++){const mid=Math.sqrt(lo*hi);if(inside(mid))hi=mid;else lo=mid;}return hi;
   }
   // World point (metres, launch x measured from the start line) to canvas CSS pixels, or null off-screen.
@@ -458,9 +556,25 @@ export class Scene {
     if(o.glass)gl.depthMask(true);
   }
   draw(mesh,p,s,color,r=[0,0,0],metal=0,parent=I(),floor=0,rough=.45,emit=0,glass=false,plume=0){this.drawM(mesh,mul(parent,matrix(p,s,r)),color,{metal,floor,rough,emit,glass,plume});}
-  render({sample,hop,c,experiment,cutaway,vectors,compare,ghosts,mode,invert,turn,entries,autoFrame=true}){this.vesselAnnotation=null;this.dirty=false;this.canvas.dataset.drawCount=String((Number(this.canvas.dataset.drawCount)||0)+1);const gl=this.gl,w=this.canvas.clientWidth,h=this.canvas.clientHeight,dpr=Math.min(devicePixelRatio,2);if(this.canvas.width!==Math.round(w*dpr)||this.canvas.height!==Math.round(h*dpr)){this.canvas.width=w*dpr;this.canvas.height=h*dpr;}gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clearColor(.035,.048,.06,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  environment(eye){
+    if(!this.scenery)return;
+    // Sky follows the eye; the physical campus stays fixed in world coordinates.
+    // Drawing before the experiment lets its ground/road and telemetry keep priority.
+    const size=Math.max(1800,this.dist*1.2);
+    this.draw('box',eye,[size,size,size],[1,1,1],[0,0,0],0,I(),10,1,0,true);
+    const parent=matrix([-this.frameX,0,0]);
+    for(const mesh of this.scenery){
+      // The dedicated underside camera intentionally looks up through the pad.
+      if(this.cam==='hop-under'&&mesh.floor)continue;
+      this.drawM(mesh.name,parent,mesh.color,mesh);
+    }
+    this.canvas.dataset.environment='starbase-sunrise';
+  }
+  render({sample,hop,c,experiment,cutaway,vectors,compare,ghosts,mode,invert,turn,entries,autoFrame=true}){this.vesselAnnotation=null;this.dirty=false;this.canvas.dataset.drawCount=String((Number(this.canvas.dataset.drawCount)||0)+1);const gl=this.gl,w=this.canvas.clientWidth,h=this.canvas.clientHeight,dpr=Math.min(devicePixelRatio,2);if(this.canvas.width!==Math.round(w*dpr)||this.canvas.height!==Math.round(h*dpr)){this.canvas.width=w*dpr;this.canvas.height=h*dpr;}gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clearColor(.71,.70,.62,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     gl.uniform1f(this.loc.uTime,sample.t??0);
     gl.uniform3fv(this.loc.uShadowYaw,new Float32Array([...(entries??[]).slice(0,3).map(e=>e.sample.yaw??0),0,0,0].slice(0,3)));
+    const shadowHeight=experiment==='hop'?Math.max(0,sample.y??0)+.65:experiment==='invert'?Math.max(.1,sample.y??.65):.65;
+    gl.uniform3fv(this.loc.uShadowHeight,new Float32Array([shadowHeight,shadowHeight,shadowHeight]));
     if(experiment==='turn'&&turn){this.renderTurn({entries,c,cutaway,vectors,turn,w,h});return;}
     if(experiment==='hop'){this.renderHop({sample,c,cutaway,vectors,hop,w,h});return;}
     if(experiment==='invert'&&invert?.rig){this.renderInvert({sample,c,cutaway,vectors,invert,w,h});return;}
@@ -470,6 +584,7 @@ export class Scene {
     gl.uniform3fv(this.loc.uShadows,new Float32Array([0,0,experiment==='invert'?0:.62*Math.exp(-lift*1.6),0,0,0,0,0,0]));
     gl.uniform1f(this.loc.uFogK,1);
     gl.uniform1f(this.loc.uLanes,0);
+    this.environment(eye);
     this.draw('box',[0,-.08,0],[110,.1,110],[.08,.1,.09],[0,0,0],0,I(),1,.9,0);
     if(experiment==='launch'){for(let i=-5;i<7;i++){let x=i*4-(sample.x%4);this.draw('box',[x,-.005,-2.56],[.08,.012,.22],[.38,.44,.4],[0,0,0],.2,I(),0,.6);}if(sample.v>8){const span=Math.min(2.2,sample.v*.03);for(let i=0;i<6;i++){const x=-1.2-i*.55-(sample.x%0.4);this.draw('box',[x,.04,1.05-(i%2)*.2],[span,.008,.012],[.72,.82,.78,.16],[0,0,0],0,I(),0,.4);}}}
     let root=matrix([0,experiment==='invert'?1.8:lift,0],[1,1,1],[0,0,experiment==='invert'?c.angle*Math.PI/180:0]);
@@ -492,6 +607,7 @@ export class Scene {
     const distance=this.fit(bounds,target,w/h)*this.zoom/6.6,{eye,vp}=this.camera(target,distance,w/h);this.vp=vp;this.dist=distance;this.yaw=yaw;
     gl.uniform3fv(this.loc.uEye,eye);gl.uniform1f(this.loc.uTravel,0);gl.uniform1f(this.loc.uFogK,Math.max(1,distance/40));gl.uniform1f(this.loc.uLanes,0);
     gl.uniform3fv(this.loc.uShadows,new Float32Array([...entries.flatMap(e=>[e.sample.x,e.sample.z,.6]),0,0,0]));
+    this.environment(eye);
     this.draw('box',[0,-.09,0],[800,.12,800],[.065,.13,.08],[0,0,0],0,I(),2,.95);
     this.draw('turn-road',[0,0,0],[1,1,1],[.085,.12,.13],[0,0,0],0,I(),3,.95);
     this.draw('box',[-3,-.005,0],[6,.025,track.width],[.085,.12,.13],[0,0,0],0,I(),3,.95);
@@ -535,6 +651,7 @@ export class Scene {
     const distance=this.fit(bounds,target,w/h)*this.zoom/6.6,{eye,vp}=this.camera(target,distance,w/h);this.vp=vp;this.dist=distance;
     const gl=this.gl;gl.uniform3fv(this.loc.uEye,eye);gl.uniform1f(this.loc.uTravel,0);gl.uniform1f(this.loc.uFogK,Math.max(1,distance/18));gl.uniform1f(this.loc.uLanes,0);
     gl.uniform3fv(this.loc.uShadows,new Float32Array([sample.x,0,.5*Math.exp(-sample.clearance*.25),0,0,0,0,0,0]));
+    this.environment(eye);
     this.draw('box',[0,-.08,0],[150,.1,150],[.08,.1,.09],[0,0,0],0,I(),1,.9);
     const deck=matrix([0,rig.height,0],[1,1,1],[0,0,sample.platformAngle??a]);
     this.draw('box',[0,-.12,0],[2*rig.halfLength,.24,2*rig.halfWidth],[.17,.23,.24],[0,0,0],.55,deck,0,.42);
@@ -566,13 +683,17 @@ export class Scene {
   renderHop({sample,c,cutaway,vectors,hop,w,h}){
     this.frameX=0;
     const peak=Math.max(.5,hop?.peakHeight??sample.y),tracking=this.cam==='hop-track'||this.cam==='hop-under';
-    const target=[0,tracking?sample.y+.65:peak/2+.55,0];
-    const bounds=tracking?[-2.6,2.6].flatMap(x=>[-1.25,1.25].flatMap(z=>[sample.y,sample.y+2.1].map(y=>[x,y,z]))):[-3.8,2.7].flatMap(x=>[-2,1.3].flatMap(z=>[0,peak+2.1].map(y=>[x,y,z])));
+    const jetContext=this.cam==='hop-track'?1.4*(1-Math.exp(-Math.max(0,sample.y)*.65)):0;
+    const target=[0,tracking?sample.y+.65-jetContext:peak/2+.55,0];
+    // Keep some jet/pad context below a tracked car, without a valve-edge camera jump.
+    const lower=this.cam==='hop-under'?sample.y:Math.max(0,sample.y-3.5);
+    const bounds=tracking?[-2.6,2.6].flatMap(x=>[-1.25,1.25].flatMap(z=>[lower,sample.y+2.1].map(y=>[x,y,z]))):[-3.8,2.7].flatMap(x=>[-2,1.3].flatMap(z=>[0,peak+2.1].map(y=>[x,y,z])));
     const distance=this.fit(bounds,target,w/h)*this.zoom/6.6;
     const {eye,vp}=this.camera(target,distance,w/h);this.vp=vp;this.dist=distance;
     const gl=this.gl;gl.uniform3fv(this.loc.uEye,eye);gl.uniform1f(this.loc.uTravel,0);
     gl.uniform1f(this.loc.uFogK,Math.max(1,distance/16));gl.uniform1f(this.loc.uLanes,0);
     gl.uniform3fv(this.loc.uShadows,new Float32Array([0,0,.62*Math.exp(-sample.y*.16),0,0,0,0,0,0]));
+    this.environment(eye);
     if(this.cam!=='hop-under'){
     const span=Math.max(160,peak*2+120);
     this.draw('box',[0,-.08,0],[span,.1,span],[.08,.1,.09],[0,0,0],0,I(),1,.9);
@@ -627,18 +748,23 @@ export class Scene {
     const active=entries.filter(e=>e.visible!==false),selected=entries.find(e=>e.mode===mode)||entries[0];
     const xs=active.map(e=>e.sample.x),focus=this.cam==='focus';
     const origin=focus?selected.sample.x:(Math.min(...xs)+Math.max(...xs))/2;
-    if(autoFrame||!this.frozenFrame)this.frozenFrame={origin,z:focus?laneZ(mode):0};
-    const frame=autoFrame?{origin,z:focus?laneZ(mode):0}:this.frozenFrame;
+    // Lift the overview smoothly as the real separation grows; never compress lanes.
+    const spread=Math.max(...xs)-Math.min(...xs),lift=Math.max(0,Math.min(1,(spread-8)/170));
+    const autoLift=this.cam==='field'?.20*lift*lift*(3-2*lift):0;
+    if(autoFrame||!this.frozenFrame)this.frozenFrame={origin,z:focus?laneZ(mode):0,autoLift};
+    const frame=autoFrame?{origin,z:focus?laneZ(mode):0,autoLift}:this.frozenFrame;
+    const elevation=this.elev+(frame.autoLift??0);
     this.frameX=frame.origin;
     const allCars=launchPlacements(entries,this.frameX),cars=focus?allCars.filter(e=>e.mode===mode):allCars,target=[0,.65,frame.z];
     const bounds=cars.flatMap(e=>[-2.5,2.5].flatMap(dx=>[-1.15,1.15].flatMap(dz=>[0,1.55].map(y=>[e.x+dx,y,e.z+dz]))));
-    const required=this.fit(bounds.length?bounds:[[0,0,0]],target,w/h);
+    const required=this.fit(bounds.length?bounds:[[0,0,0]],target,w/h,elevation);
     if(autoFrame||!this.frozenDistance)this.frozenDistance=required;
     const distance=(autoFrame?required:this.frozenDistance)*this.zoom/6.6;
-    const {eye,vp}=this.camera(target,distance,w/h);this.vp=vp;this.dist=distance;
+    const {eye,vp}=this.camera(target,distance,w/h,elevation);this.vp=vp;this.dist=distance;
     const gl=this.gl;gl.uniform3fv(this.loc.uEye,eye);gl.uniform1f(this.loc.uTravel,this.frameX);
     gl.uniform1f(this.loc.uFogK,Math.max(1,distance/16));gl.uniform1f(this.loc.uLanes,1);
     const shadows=new Float32Array(9);cars.forEach((e,i)=>shadows.set([e.x,e.z,.62],i*3));gl.uniform3fv(this.loc.uShadows,shadows);
+    this.environment(eye);
     const span=Math.max(160,...cars.map(e=>Math.abs(e.x)*2+140));
     this.draw('box',[0,-.08,0],[span,.1,70],[.08,.1,.09],[0,0,0],0,I(),1,.9,0);
     for(const e of cars){
@@ -680,19 +806,28 @@ export class Scene {
         this.draw('box',[x,.23,z],[.32,.16,.28],[.13,.17,.18],[0,0,0],.65,root);
         this.draw('cyl',[x,y,z],[.115,.115,.18],[.5,.55,.56],[Math.PI/2,0,0],.8,root,0,.25);
         this.draw('cyl',[x,y-.095,z],[.079,.079,.012],[.018,.025,.026],[Math.PI/2,0,0],.2,root);
-        if(s.thrust>0&&s.flow>0&&!ghost){
-          const perFlow=s.flow/4,perThrust=s.thrust/4,len=Math.min(2.8,.12+perFlow*.06+perThrust/15000);
-          this.draw('plume',[x,y-.11,z],[.25,.25,len],[.68,.88,.94,Math.min(.4,.12+perFlow*.018)],[Math.PI/2,0,0],0,root,0,.8,.22,true,1);
+        const plume=coldGasVisual(s,true);
+        if(plume.active&&!ghost){
+          const seed=(x>0?.11:.03)+(z>0?.05:0);
+          this.draw('plume',[x,y-.11,z],[.13,.13,plume.core],[.95,.97,1,.44],[Math.PI/2,0,0],0,root,0,1,0,true,1+seed);
+          this.draw('gas-cloud',[x,y-.11,z],[plume.spread,plume.spread,plume.length],[1,1,1,plume.opacity],[Math.PI/2,0,0],0,root,0,1,0,true,2+seed);
         }
       }
-    }else if(mode===2&&s.thrust>100&&s.flow>0&&!ghost){
-      const len=Math.min(2.5,.30+s.flow*.026+(s.exitVelocity??0)*.0007);
-      for(const z of [-.47,-.17,.17,.47]){
-        this.draw('plume',[-2.19,.548,z],[.20,.20,len],[.72,.91,.98,.3],[0,-Math.PI/2,0],0,root,0,.8,.15,true,1);
-        this.draw('plume',[-2.20,.548,z],[.085,.085,len*.6],[.9,.98,1,.22],[0,-Math.PI/2,0],0,root,0,.8,.2,true,1);
+      const plume=coldGasVisual(s,true);
+      if(plume.ground>0&&!ghost&&this.cam!=='hop-under'){
+        const spread=1.5+plume.ground*1.3+Math.min(2,(s.y||0)*.16);
+        this.draw('ground-cloud',[0,.04-(s.y||0),0],[spread,.8,spread],[1,1,1,.60*plume.ground],[0,0,0],0,root,0,1,0,true,3.07);
+      }
+    }else if(experiment==='launch'&&mode===2&&!ghost){
+      const plume=coldGasVisual(s);
+      if(plume.active)for(const [i,z] of [-.47,-.17,.17,.47].entries()){
+        const seed=.03+i*.07;
+        this.draw('plume',[-2.20,.548,z],[.13,.13,plume.core],[.95,.97,1,.48],[0,-Math.PI/2,0],0,root,0,1,0,true,1+seed);
+        this.draw('gas-cloud',[-2.20,.548,z],[plume.spread,plume.spread,plume.length],[1,1,1,plume.opacity],[0,-Math.PI/2,0],0,root,0,1,0,true,2+seed);
       }
     }
   }
+
   hopDebris(progress,parent=I()){
     // Display-only fragments and dust, reconstructed from a single visual clock.
     // Fixed indices replace randomness so pause, replay and scrubbing are stable.

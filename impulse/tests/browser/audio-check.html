@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><title>RoadsterLAB audio verification</title><style>body{background:#10231f;color:#d5efe4;font:15px system-ui;padding:36px;max-width:1100px;margin:auto}button{padding:14px;background:#b8f5d5;border:0;border-radius:10px;cursor:pointer}pre{white-space:pre-wrap}label{display:block;margin:20px 0}input{width:180px}</style><h1>RoadsterLAB · Audio verification</h1><p>Local native Web Audio / decoder / output checks. No microphone or external requests.</p><button id="run">Run audio checks</button><button id="stop">Stop all sound</button><pre id="results">Waiting for a user gesture.</pre><script type="module">
+import {SimulationAudio} from './audio.js';
+import {AUDIO_ASSETS} from './audio-assets.js';
+import {audioTargets} from './audio-mapping.js';
+import {DEFAULTS,fanModel,simulateLaunch,simulateHop,simulateInvert,simulateTurnComparison} from './physics.js';
+const out=document.querySelector('#results'),button=document.querySelector('#run');let sound;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const storage={getItem(){return null},setItem(){}};
+document.querySelector('#stop').onclick=()=>sound?.dispose();
+button.onclick=async()=>{
+ button.disabled=true;const checks=[];const check=(name,ok,detail)=>{checks.push({name,pass:!!ok,detail});out.textContent=JSON.stringify(checks,null,2);if(!ok)throw Error(name);};
+ try{
+ sound=new SimulationAudio({storage});await sound.toggle();check('native decode',sound.buffers.size===17&&sound.failures.length===0,{decoded:sound.buffers.size,failed:sound.failures,rate:sound.ctx.sampleRate});
+ const music=sound.loops.get('background_music'),motor=sound.loops.get('motor_mid');
+ const c={...DEFAULTS,heatTransfer:0};const fan=fanModel(c);
+ const launch=simulateLaunch(c,2),hop=simulateHop(c),invert=simulateInvert({...c,angle:90,invertStart:90,fan:20}),turn=simulateTurnComparison(c);
+ const cases=[['launch',launch.samples[50],{config:c,mode:2,fan}],['hop',hop.samples.find(s=>s.flow>0),{config:c,mode:2,fan}],['invert',invert.samples.find(s=>s.contact&&Math.abs(s.alongV)>.5),{config:{...c,fan:20},mode:2,fan:fanModel({...c,fan:20})}],['turn',turn.runs[1].samples[20],{config:c,mode:1,info:turn.runs[1].turn,fan}]];
+ for(const [kind,s,ctx] of cases){sound.silence();sound.update(s,kind,true,ctx);await wait(300);check(kind+' native layers',Object.values(audioTargets(s,kind,ctx).layers).every(Number.isFinite),{gates:sound.gates,skid:sound.skid,events:sound.eventCount,active:[...sound.loops].filter(([n,v])=>n!=='background_music'&&v.gain.gain.value>.005).map(([n,v])=>({name:n,gain:+v.gain.gain.value.toFixed(4)}))});}
+ sound.silence();await wait(150);check('shared loop continuity',sound.loops.get('background_music')===music&&sound.loops.get('motor_mid')===motor,{loopSources:sound.loops.size,musicGain:music.gain.gain.value});
+ sound.setMusicVolume(0);sound.setEffectsVolume(0);await wait(350);check('independent bus mute',music.gain.gain.value<.01&&sound.effects.gain.value<.01,{musicGain:music.gain.gain.value,effectsGain:sound.effects.gain.value});
+ sound.setEffectsVolume(.65);sound.setMusicVolume(.18);check('ordinary touchdown rejected',sound.impact(c.wreckSpeed,c.wreckSpeed)===false);
+ check('supported major impact',sound.impact(c.wreckSpeed*2,c.wreckSpeed));sound.silence();check('cancelled voices',sound.voices.size===0);
+ const Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+ const offline=new Offline(2,48000*3,48000),mix=new SimulationAudio({contextFactory:()=>offline,storage});mix.init();mix.enabled=true;mix.master.gain.value=.65;mix.effects.gain.value=1;
+ for(const [name,buffer] of sound.buffers){const src=offline.createBufferSource();src.buffer=buffer;src.loop=!!AUDIO_ASSETS[name].loop;src.connect(mix.effects);src.start(0);}
+ const rendered=await offline.startRendering();let peak=0,finite=true;for(let c=0;c<2;c++)for(const x of rendered.getChannelData(c)){peak=Math.max(peak,Math.abs(x));finite&&=Number.isFinite(x);}
+ check('native worst-case overlap headroom',finite&&peak<.94,{peak,all17RecordingsSimultaneously:true,seconds:3});
+ sound.dispose();check('disposed',sound.ctx.state==='closed'&&sound.loops.size===0);out.textContent=JSON.stringify({pass:true,checks},null,2);
+ }catch(e){out.textContent+= '\nFAILED: '+e.message;sound?.dispose();}finally{button.disabled=false;}
+};
+</script>
