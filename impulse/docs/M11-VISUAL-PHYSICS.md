@@ -66,6 +66,14 @@ Bars use one run-wide scale per result (no frame-to-frame rescaling).
 - Narrow scenes (container query ≤ 820 px, e.g. Parameters open on a laptop): icon-only view
   toggles and no drag hint, so Cutaway/Forces/Physics never overlap the zoom buttons.
 
+### Follow-up after Albert's review (same day)
+- **Mini-player transport:** the docked player now appears whenever the scene has scrolled
+  out of view and a result exists (before, during or after a run), with **Replay from the
+  start** and **Play/Pause** buttons and a thin progress bar, so runs can be restarted while
+  reading the plots. "Back to the scene" and close are unchanged.
+- **Live values above each Launch car:** with Physics on, each car label adds its current
+  speed and acceleration (e.g. `140 km/h · 1.06 g`); labels widen to 140 px.
+
 ## Verification (headless Chromium + SwiftShader, local build)
 - `node --experimental-strip-types --test tests/*.test.*`: 158/158 (154 + 4 new: Launch
   diagnostics equal the solver limits and reproduce acceleration; friction-circle geometry;
@@ -78,6 +86,9 @@ Bars use one run-wide scale per result (no frame-to-frame rescaling).
   toolbar fits; no page errors.
 - Layout audit at 1440, 1280, 1100 (+Parameters), 834, 390, 360: no overflow, no text
   under 11 px, no toolbar/hint/zoom overlap; timeline markers are 24 px wide.
+- Mini player at 1280 and 390 px: appears at t = 0 when scrolled to the plots, Play starts,
+  stays after the end with Replay, Replay restarts from zero and plays, controls inside the
+  player, no page errors.
 - Screenshots: impulse/share/m11-20261027/.
 
 ## Still open

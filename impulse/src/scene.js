@@ -1027,7 +1027,7 @@ export class Scene {
     }
     // Previous setup of the focused car as a translucent ghost in its own lane (display only).
     if(previous?.sample){const gx=previous.sample.x-this.frameX,gz=laneZ(previous.mode);this.ghostDrawing=true;this.car(matrix([gx,0,gz]),false,{...previous.sample,thrust:0,flow:0},c,previous.mode,'launch',true);this.ghostDrawing=false;this.ghostAnnotation={point:this.project([previous.sample.x,1.25,gz]),label:'Previous setup',x:previous.sample.x};}
-    this.annotations=cars.map(e=>({mode:e.mode,point:this.project([e.sample.x,1.65,e.z]),x:e.sample.x,status:e.status}));
+    this.annotations=cars.map(e=>({mode:e.mode,point:this.project([e.sample.x,1.65,e.z]),x:e.sample.x,v:e.sample.v,a:e.sample.a,status:e.status}));
     const min=0,max=Math.max(...xs)+60;
     this.distanceMarks=[];
     for(let x=min;x<=max&&this.distanceMarks.length<16;x+=50){const point=this.project([x,2.55,-7.4]);if(point)this.distanceMarks.push({x,point});}

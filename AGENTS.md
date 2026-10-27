@@ -387,4 +387,6 @@ columns. Shadows: Scene.render records draw calls (drawM queue), draws the sun d
 scenery/decals; keep the analytic shadows as fallback outside the map. New render state must
 stay optional so GPU-free CI mocks pass. Quality levels via setQuality (adaptive step-down in
 the frame loop unless `quality=` is set). Timeline markers show outcome events only once
-reached or after reveal. See impulse/docs/M11-VISUAL-PHYSICS.md.
+reached or after reveal. The docked mini player shows whenever the scene is scrolled away
+and a result exists, with Replay (t = 0, play) and Play/Pause mirroring #play. See
+impulse/docs/M11-VISUAL-PHYSICS.md.
