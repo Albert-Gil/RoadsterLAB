@@ -1,9 +1,9 @@
-import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile, copyFile } from 'node:fs/promises';
 import { stripTypeScriptTypes } from 'node:module';
 import { Script } from 'node:vm';
 await mkdir('dist', { recursive: true });
 await copyFile('index.html', 'dist/index.html');
-for (const file of ['recorder.js','engineering.js','showcase.js','tuning.js','ui.js','app.js','scene.js','scenery.js','audio.js','audio-assets.js','audio-mapping.js','air-table.js','plots.js','hop.js','invert.js','turn.js','vessel.js','simulation-client.js','simulation-worker.js','style.css']) await copyFile(`src/${file}`, `dist/${file}`);
+for (const file of ['recorder.js','engineering.js','showcase.js','reveal.js','tuning.js','ui.js','app.js','scene.js','scenery.js','audio.js','audio-assets.js','audio-mapping.js','air-table.js','plots.js','hop.js','invert.js','turn.js','vessel.js','simulation-client.js','simulation-worker.js','style.css']) await copyFile(`src/${file}`, `dist/${file}`);
 const physicsSrc = stripTypeScriptTypes(await readFile('src/physics.ts','utf8'));
 await writeFile('dist/physics.js', physicsSrc);
 const html = await readFile('index.html','utf8'), css = await readFile('src/style.css','utf8');
@@ -16,6 +16,18 @@ for(const [name,asset] of Object.entries(audioCatalog)){
  audioData[name]='data:audio/wav;base64,'+(await readFile(`assets/audio/web/${asset.file}`)).toString('base64');
 }
 await copyFile('assets/audio/RIGHTS.json','dist/assets/audio/RIGHTS.json');
+// Served site: compact Opus/AAC copies with exact frame counts; WAVs remain the fallback and the standalone source.
+const compressed=JSON.parse(await readFile('assets/audio/compressed/manifest.json','utf8'));
+for(const entry of Object.values(compressed))for(const ext of ['webm','m4a'])await copyFile(`assets/audio/compressed/${entry[ext].file}`,`dist/assets/audio/${entry[ext].file}`);
+await writeFile('dist/assets/audio/compressed.json',JSON.stringify(compressed));
+// Self-hosted OFL fonts: served as files, embedded as data URLs in the standalone page.
+await mkdir('dist/assets/fonts',{recursive:true});
+const fontFiles=(await readdir('assets/fonts')).filter(name=>name.endsWith('.woff2')||name.startsWith('LICENSE'));
+for(const name of fontFiles)await copyFile(`assets/fonts/${name}`,`dist/assets/fonts/${name}`);
+let standaloneCss=css;
+for(const name of fontFiles.filter(name=>name.endsWith('.woff2')))
+ standaloneCss=standaloneCss.replaceAll(`url(assets/fonts/${name})`,`url(data:font/woff2;base64,${(await readFile(`assets/fonts/${name}`)).toString('base64')})`);
+if(/url\(assets\//.test(standaloneCss))throw new Error('Standalone CSS still references a local asset.');
 const audioAssets=await readFile('src/audio-assets.js','utf8'),audioMapping=await readFile('src/audio-mapping.js','utf8');
 // Keep module scopes isolated in the offline artifact, including private table arrays.
 // Collect the actual named imports instead of maintaining a second public API list.
@@ -37,6 +49,7 @@ new Script(workerBundle,{filename:'standalone-worker.js'});
 const recorder=await readFile('src/recorder.js','utf8'),engineering=await readFile('src/engineering.js','utf8');
 const showcase=await readFile('src/showcase.js','utf8');
 const tuning=await readFile('src/tuning.js','utf8');
+const reveal=await readFile('src/reveal.js','utf8');
 const ui=await readFile('src/ui.js','utf8');
 const plots=await readFile('src/plots.js','utf8'),client=await readFile('src/simulation-client.js','utf8');
 const hop=await readFile('src/hop.js','utf8');
@@ -45,12 +58,12 @@ const turn=await readFile('src/turn.js','utf8');
 const vessel=await readFile('src/vessel.js','utf8');
 const scenery=await readFile('src/scenery.js','utf8');
 const bundled='globalThis.ROADSTERLAB_AUDIO_DATA='+JSON.stringify(audioData)+';\n'+'globalThis.IMPULSE_WORKER_SOURCE='+JSON.stringify(workerBundle)+';\n'+bundle(new Map([
- ['air-table.js',air],['physics.js',physicsSrc],['audio-assets.js',audioAssets],['audio-mapping.js',audioMapping],['audio.js',audio],['hop.js',hop],['invert.js',invert],['turn.js',turn],['scenery.js',scenery],['scene.js',scene],
+ ['air-table.js',air],['physics.js',physicsSrc],['audio-assets.js',audioAssets],['audio-mapping.js',audioMapping],['audio.js',audio],['hop.js',hop],['invert.js',invert],['turn.js',turn],['reveal.js',reveal],['scenery.js',scenery],['scene.js',scene],
  ['showcase.js',showcase],['recorder.js',recorder],['engineering.js',engineering],['tuning.js',tuning],['ui.js',ui],['simulation-client.js',client],['plots.js',plots],['vessel.js',vessel],['app.js',app]
 ]));
 await writeFile('dist/standalone-worker.js',workerBundle);
 // Check the artifact itself, not just its component files.
 new Script(bundled, {filename:'roadsterlab.html'});
-await writeFile('dist/impulse.html', html.replace('<link rel="stylesheet" href="style.css"/>', `<style>${css}</style>`).replace('<script type="module" src="app.js"></script>', `<script type="module">${bundled.replace(/<\/script/gi,'<\\/script')}</script>`));
+await writeFile('dist/impulse.html', html.replace('<link rel="stylesheet" href="style.css"/>', `<style>${standaloneCss}</style>`).replace('<script type="module" src="app.js"></script>', `<script type="module">${bundled.replace(/<\/script/gi,'<\\/script')}</script>`));
 await copyFile('dist/impulse.html','dist/roadsterlab.html');
 console.log('Built dependency-free application in dist/');

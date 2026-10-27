@@ -37,7 +37,7 @@ export function turnRoadMesh(track){
 }
 export class TurnMap{
  constructor(host,onScrub){
-  this.host=host;this.onScrub=onScrub;this.time=0;
+  this.host=host;this.onScrub=onScrub;this.time=0;this.revealed=true;
   this.observer=new ResizeObserver(()=>this.draw());this.observer.observe(host);
   host.addEventListener('pointerdown',e=>{if(this.disabled||!this.result)return;const svg=host.querySelector('svg'),r=svg.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*this.w,py=(e.clientY-r.top)/r.height*this.h;let best=Infinity,time=0;
    for(const sample of this.result.runs[this.focus].samples){const [x,y]=this.point(sample.x,sample.z),d=(x-px)**2+(y-py)**2;if(d<best){best=d;time=sample.t;}}onScrub(time);e.preventDefault();});
@@ -46,17 +46,20 @@ export class TurnMap{
  dispose(){this.observer.disconnect();}
  setData(result){this.result=result;this.draw();}
  setDisabled(value){this.disabled=value;this.host.classList.toggle('pending-result',value);}
+ setReveal(revealed){if(this.revealed===revealed)return;this.revealed=revealed;this.host.querySelectorAll('[data-turn-future]').forEach(p=>p.setAttribute('opacity',revealed?'.35':'0'));}
  draw(){
   if(!this.result)return;const focused=document.activeElement===this.host.querySelector('svg');const {track,runs}=this.result,points=[...track.centerline,...runs.flatMap(r=>r.samples)];
   const minX=Math.min(...points.map(p=>p.x))-track.width/2-3,maxX=Math.max(...points.map(p=>p.x))+track.width/2+3,minZ=Math.min(...points.map(p=>p.z))-track.width/2-3,maxZ=Math.max(...points.map(p=>p.z))+track.width/2+3;
   this.w=Math.max(280,this.host.clientWidth);this.h=320;const scale=Math.min((this.w-40)/(maxX-minX),(this.h-40)/(maxZ-minZ));
   this.point=(x,z)=>[(this.w-(maxX-minX)*scale)/2+(x-minX)*scale,(this.h-(maxZ-minZ)*scale)/2+(z-minZ)*scale];
-  const path=samples=>samples.map((p,i)=>`${i?'L':'M'}${this.point(p.x,p.z).map(v=>v.toFixed(2)).join(',')}`).join('');
-  this.host.innerHTML=`<svg viewBox="0 0 ${this.w} ${this.h}" role="slider" tabindex="0" aria-label="Turn trajectory, scrub simulation time" aria-valuemin="0" aria-valuemax="${this.result.duration}" aria-valuenow="${this.time}"><rect width="100%" height="100%" fill="#172e23"/><path d="${path(track.centerline)}" stroke="#27383c" stroke-width="${track.width*scale}" fill="none"/>${track.edges.map(w=>{const a=this.point(w.x-Math.cos(w.angle)*w.halfLength,w.z-Math.sin(w.angle)*w.halfLength),b=this.point(w.x+Math.cos(w.angle)*w.halfLength,w.z+Math.sin(w.angle)*w.halfLength);return `<path d="M${a.join(',')}L${b.join(',')}" stroke="#b0c1b5" stroke-width="2" fill="none"/>`;}).join('')}<path d="${path(track.centerline)}" stroke="#71868a" stroke-dasharray="4 7" fill="none"/>${runs.map((run,i)=>`<path d="${path(run.samples.filter((_,j)=>j%6===0||j===run.samples.length-1))}" stroke="${TURN_COLORS[i].plot}" stroke-width="2" stroke-dasharray="${TURN_COLORS[i].dash}" fill="none"/><circle data-turn-dot="${i}" r="5" fill="${TURN_COLORS[i].plot}" stroke="#102024" stroke-width="2"/>`).join('')}<text x="16" y="20" fill="#9eb0b5" font-size="10">TOP VIEW / METRES · SELECTED CAR SCRUB</text></svg>`;
+  const path=this.path=samples=>samples.map((p,i)=>`${i?'L':'M'}${this.point(p.x,p.z).map(v=>v.toFixed(2)).join(',')}`).join('');
+  this.host.innerHTML=`<svg viewBox="0 0 ${this.w} ${this.h}" role="slider" tabindex="0" aria-label="Turn trajectory, scrub simulation time" aria-valuemin="0" aria-valuemax="${this.result.duration}" aria-valuenow="${this.time}"><rect width="100%" height="100%" fill="#172e23"/><path d="${path(track.centerline)}" stroke="#27383c" stroke-width="${track.width*scale}" fill="none"/>${track.edges.map(w=>{const a=this.point(w.x-Math.cos(w.angle)*w.halfLength,w.z-Math.sin(w.angle)*w.halfLength),b=this.point(w.x+Math.cos(w.angle)*w.halfLength,w.z+Math.sin(w.angle)*w.halfLength);return `<path d="M${a.join(',')}L${b.join(',')}" stroke="#b0c1b5" stroke-width="2" fill="none"/>`;}).join('')}<path d="${path(track.centerline)}" stroke="#71868a" stroke-dasharray="4 7" fill="none"/>${runs.map((run,i)=>`<path data-turn-future="${i}" opacity="${this.revealed?'.35':'0'}" d="${path(run.samples.filter((_,j)=>j%6===0||j===run.samples.length-1))}" stroke="${TURN_COLORS[i].plot}" stroke-width="2" stroke-dasharray="${TURN_COLORS[i].dash}" fill="none"/><path data-turn-past="${i}" d="" stroke="${TURN_COLORS[i].plot}" stroke-width="2" stroke-dasharray="${TURN_COLORS[i].dash}" fill="none"/><circle data-turn-dot="${i}" r="5" fill="${TURN_COLORS[i].plot}" stroke="#102024" stroke-width="2"/>`).join('')}<text x="16" y="20" fill="#9eb0b5" font-size="10">TOP VIEW / METRES · SELECTED CAR SCRUB</text></svg>`;
   this.update(this.time,this.focus??1);if(focused)this.host.querySelector('svg').focus({preventScroll:true});
  }
  update(time,focus){this.time=time;this.focus=focus;if(!this.result||!this.point)return;
   this.host.querySelector('svg').setAttribute('aria-valuenow',time.toFixed(2));this.host.querySelector('svg').setAttribute('aria-valuetext',`${time.toFixed(2)} of ${this.result.duration.toFixed(2)} seconds`);
-  this.result.runs.forEach((run,i)=>{const s=turnSample(run,time).sample,[x,y]=this.point(s.x,s.z),dot=this.host.querySelector(`[data-turn-dot="${i}"]`);dot.setAttribute('cx',x);dot.setAttribute('cy',y);dot.setAttribute('r',i===focus?6:4);});
+  this.result.runs.forEach((run,i)=>{const s=turnSample(run,time).sample,[x,y]=this.point(s.x,s.z),dot=this.host.querySelector(`[data-turn-dot="${i}"]`);dot.setAttribute('cx',x);dot.setAttribute('cy',y);dot.setAttribute('r',i===focus?6:4);
+   // Draw only the travelled part of each path; the remainder is a ghost after reveal.
+   const past=this.host.querySelector(`[data-turn-past="${i}"]`);if(past)past.setAttribute('d',this.path([...run.samples.filter((p,j)=>p.t<time&&(j%6===0)),s]));});
  }
 }

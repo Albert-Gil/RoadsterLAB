@@ -14,6 +14,11 @@ test('standalone artifact parses with isolated module scopes',()=>{
   assert.ok(script,'offline script must be embedded');
   assert.doesNotThrow(()=>new Script(script));
   assert.ok(!/^import /m.test(script),'offline artifact must not import local files');
+  // Self-hosted fonts are embedded so the offline page renders the same type everywhere.
+  const style=html.match(/<style>([\s\S]*?)<\/style>/)?.[1]||'';
+  assert.ok((style.match(/data:font\/woff2;base64,/g)||[]).length>=6,'standalone embeds every font face');
+  assert.ok(!/url\(assets\//.test(style),'standalone CSS has no local asset references');
+  assert.match(style,/font-family:'RL Inter'/);
   const audioData=JSON.parse(script.match(/globalThis\.ROADSTERLAB_AUDIO_DATA=(\{[^\n]+\});/)?.[1]||'null');
   assert.equal(Object.keys(audioData||{}).length,17,'standalone must embed every recording');
   for(const [name,url] of Object.entries(audioData)){

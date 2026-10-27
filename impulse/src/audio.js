@@ -6,13 +6,25 @@ const clamp=x=>Math.max(0,Math.min(1,Number.isFinite(x)?x:0));
 const hidden=()=>globalThis.document?.hidden===true;
 const ramp=(param,value,now,tau=AUDIO_MIX.smoothing)=>param.setTargetAtTime(value,now,tau);
 
+// Compressed copies are encoded with a wrapped lead-in for loops; keep exactly the original frames.
+export function conformBuffer(ctx,buffer,entry){
+ const ratio=buffer.sampleRate/entry.sampleRate,lead=Math.round((entry.lead||0)*ratio),frames=Math.max(1,Math.round(entry.frames*ratio));
+ if(!lead&&buffer.length===frames)return buffer;
+ const out=ctx.createBuffer(buffer.numberOfChannels,frames,buffer.sampleRate);
+ for(let ch=0;ch<buffer.numberOfChannels;ch++)out.getChannelData(ch).set(buffer.getChannelData(ch).subarray(lead,lead+frames));
+ return out;
+}
+// Served pages prefer Opus, then AAC, then the WAV master. Standalone pages use embedded WAVs.
+export function compressedFormats(probe=globalThis.document?.createElement?.('audio')){
+ return [['webm','audio/webm; codecs="opus"'],['m4a','audio/mp4; codecs="mp4a.40.2"']].filter(([,type])=>!!probe?.canPlayType?.(type)).map(([ext])=>ext);
+}
 // One manager per app. Buffers and silent loop voices survive mode remounts.
 // AudioParam automation uses the audio clock, independent of display frame rate.
 export class SimulationAudio {
  enabled=false; wantedEnabled=true; musicVolume=.18; effectsVolume=.65; volume=.65;
  buffers=new Map(); loops=new Map(); voices=new Set(); impacts=new Set();
  gates={thrust:false,suction:false}; gateAt={}; skid=false;
- impactCount=0; eventCount=0; status='Sound is off'; failures=[]; epoch=0;
+ formats={}; impactCount=0; eventCount=0; status='Sound is off'; failures=[]; epoch=0;
  constructor({storage,contextFactory,loadBuffer}={}){
   this.contextFactory=contextFactory;this.loadBuffer=loadBuffer;
   try{this.storage=storage??globalThis.localStorage;const current=this.storage?.getItem(PREF_KEY),p=JSON.parse(current||this.storage?.getItem('roadsterlab.audio.v2')||'null');
@@ -90,16 +102,25 @@ export class SimulationAudio {
   if(this.loading)return this.loading;
   this.loading=(async()=>{
    const entries=Object.entries(AUDIO_ASSETS);let cursor=0;
+   const inlineData=globalThis.ROADSTERLAB_AUDIO_DATA,formats=this.loadBuffer||inlineData?[]:compressedFormats();
+   let manifest=null;
+   if(formats.length)try{const response=await fetch(new URL('assets/audio/compressed.json',import.meta.url));if(response.ok)manifest=await response.json();}catch{manifest=null;}
    await Promise.all(Array.from({length:3},async()=>{
     while(cursor<entries.length){const [name,asset]=entries[cursor++];
      try{
       let buffer;
       if(this.loadBuffer)buffer=await this.loadBuffer(name,asset,this.ctx);
       else{
-       const inline=globalThis.ROADSTERLAB_AUDIO_DATA?.[name];
-       const url=inline||new URL(`assets/audio/${asset.file}`,import.meta.url);
-       const response=await fetch(url);if(!response.ok)throw new Error('Recording unavailable');
-       buffer=await this.ctx.decodeAudioData(await response.arrayBuffer());
+       const entry=manifest?.[name];
+       for(const ext of entry?formats:[]){
+        try{const response=await fetch(new URL(`assets/audio/${entry[ext].file}`,import.meta.url));if(!response.ok)continue;buffer=conformBuffer(this.ctx,await this.ctx.decodeAudioData(await response.arrayBuffer()),entry);this.formats[name]=ext;break;}catch{buffer=null;}
+       }
+       if(!buffer){
+        const inline=inlineData?.[name];
+        const url=inline||new URL(`assets/audio/${asset.file}`,import.meta.url);
+        const response=await fetch(url);if(!response.ok)throw new Error('Recording unavailable');
+        buffer=await this.ctx.decodeAudioData(await response.arrayBuffer());this.formats[name]='wav';
+       }
       }
       if(this.disposed)return;
       this.buffers.set(name,buffer);if(asset.loop)this.startLoop(name,buffer);

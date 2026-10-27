@@ -6,5 +6,5 @@ createServer(async (req,res) => {
   const relative = decodeURIComponent(new URL(req.url,'http://localhost').pathname).replace(/^\/+/, '') || 'index.html';
   const file = resolve(root, relative);
   if (!file.startsWith(root + sep)) { res.writeHead(403).end(); return; }
-  try { const data = await readFile(file); res.writeHead(200, {'Content-Type': ({'.html':'text/html','.js':'text/javascript','.css':'text/css'})[extname(file)] || 'application/octet-stream','Cache-Control':'no-store'}); res.end(data); } catch { res.writeHead(404).end('Not found'); }
+  try { const data = await readFile(file); res.writeHead(200, {'Content-Type': ({'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.woff2':'font/woff2','.wav':'audio/wav','.webm':'audio/webm','.m4a':'audio/mp4'})[extname(file)] || 'application/octet-stream','Cache-Control':'no-store'}); res.end(data); } catch { res.writeHead(404).end('Not found'); }
 }).listen(4173,'127.0.0.1',()=>console.log('Local: http://127.0.0.1:4173'));

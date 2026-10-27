@@ -77,7 +77,8 @@ export function sceneryMeshes(){
  };
  const cylinder=(mat,p,r,h,seg=32)=>lathe(mat,p,[[0,0],[0,r],[h,r],[h,0]],seg);
  // Coastal ground extends beyond every experiment; water and marsh are decorative.
- quad('coast',[-3600,-.045,-2900],[3600,-.045,-2900],[3600,-.045,2900],[-3600,-.045,2900]);
+ // Kept 12 cm below the experiment floors (top at -3 cm) so the two never z-fight at distance.
+ quad('coast',[-3600,-.12,-2900],[3600,-.12,-2900],[3600,-.12,2900],[-3600,-.12,2900]);
  const shore=x=>-970+24*Math.sin(x*.004)+12*Math.sin(x*.011);
  const channel=x=>-350+65*Math.sin(x*.0028)+22*Math.sin(x*.008),channelWidth=x=>22+8*Math.sin(x*.005+2);
  for(let x=-3500;x<3500;x+=70){

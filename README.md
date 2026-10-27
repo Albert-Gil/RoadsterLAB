@@ -386,14 +386,16 @@ not the currently edited setup.
 |---|---|
 | `impulse/src/physics.ts` | SI states, forces, thermodynamics, integration, events and CSV. |
 | `impulse/scripts/air-eos-template.js` | Canonical consistent dry-air EOS. |
-| `impulse/src/scene.js` | Native WebGL, procedural car, cameras and world-anchored labels. |
+| `impulse/src/scene.js` | Native WebGL, procedural car, cameras (including the time-driven Launch director), trackside cues, bloom/vignette finishing pass and world-anchored labels. |
 | `impulse/src/scenery.js` | Original Starbase-inspired campus meshes, sunrise sky and coastal materials; decorative only. |
 | `impulse/src/app.js`, `ui.js`, `tuning.js` | Controls, playback, retained setups and result summaries. |
 | `impulse/src/engineering.js` | On-page equation/assumption cards and author credit. |
 | `impulse/src/showcase.js`, `recorder.js` | Tour clock, chapter shots and fixed-frame video composition. |
 | `impulse/src/simulation-client.js`, `simulation-worker.js` | Cached background computations and stale-result protection. |
 | `impulse/src/plots.js`, `vessel.js`, `hop.js`, `invert.js`, `turn.js` | Experiment presentation and synchronized analysis. |
-| `impulse/src/audio.js` | Opt-in sample engine, persistent loops, event gates and independent music/effects buses. |
+| `impulse/src/audio.js` | Sample engine (on by default once the browser allows it), persistent loops, event gates and independent music/effects buses. Served pages decode compact Opus/AAC copies and fall back to the WAVs. |
+| `impulse/src/reveal.js` | Predict-then-reveal questions graded only from solver results, reveal keys and display speed units. |
+| `impulse/assets/fonts/` | Self-hosted Inter and JetBrains Mono (OFL-1.1); embedded as data URLs in the standalone page. |
 
 From `impulse/`, `node scripts/release.mjs` builds local release folders with the
 static website, standalone HTML, source snapshot, this physics guide, release notes

@@ -65,22 +65,22 @@ export class ShowcaseRecorder{
   const {ctx}=this,{width:w,height:h,scene:r,portrait}=this.layout;
   ctx.fillStyle='#0b1418';ctx.fillRect(0,0,w,h);ctx.drawImage(this.source,r.x,r.y,r.w,r.h);
   ctx.strokeStyle='#6b998448';ctx.lineWidth=2;ctx.strokeRect(r.x,r.y,r.w,r.h);
-  ctx.textBaseline='top';ctx.textAlign='left';ctx.fillStyle='#e4f2e9';ctx.font='700 70px Arial';ctx.fillText('Roadster',48,27);const brand=ctx.measureText('Roadster').width;ctx.fillStyle='#a6dfc9';ctx.font='700 70px Arial';ctx.fillText('LAB',48+brand,27);
-  if(!portrait){ctx.textAlign='right';ctx.fillStyle='#adcbbb';ctx.font='20px Consolas, monospace';ctx.fillText(`0${view.index+1} / 04  ${view.step.kind.toUpperCase()}   ·   T+${state.sample.t.toFixed(2)} s`,w-48,48);ctx.textAlign='left';}
+  ctx.textBaseline='top';ctx.textAlign='left';ctx.fillStyle='#e4f2e9';ctx.font='700 70px "RL Inter", Inter, Arial';ctx.fillText('Roadster',48,27);const brand=ctx.measureText('Roadster').width;ctx.fillStyle='#a6dfc9';ctx.font='700 70px "RL Inter", Inter, Arial';ctx.fillText('LAB',48+brand,27);
+  if(!portrait){ctx.textAlign='right';ctx.fillStyle='#adcbbb';ctx.font='20px "RL Mono", Consolas, monospace';ctx.fillText(`0${view.index+1} / 04  ${view.step.kind.toUpperCase()}   ·   T+${state.sample.t.toFixed(2)} s`,w-48,48);ctx.textAlign='left';}
   const y=portrait?1410:828;
-  ctx.fillStyle='#a6dfc9';ctx.font='19px Consolas, monospace';ctx.fillText(`0${view.index+1} / 04 · ${view.step.kind.toUpperCase()}`,48,y);
-  ctx.fillStyle='#eef4e9';ctx.font=portrait?'52px Arial':'45px Arial';const title=wrapVideoText(ctx,view.step.title,portrait?w-96:1040);
+  ctx.fillStyle='#a6dfc9';ctx.font='19px "RL Mono", Consolas, monospace';ctx.fillText(`0${view.index+1} / 04 · ${view.step.kind.toUpperCase()}`,48,y);
+  ctx.fillStyle='#eef4e9';ctx.font=portrait?'52px "RL Inter", Inter, Arial':'45px "RL Inter", Inter, Arial';const title=wrapVideoText(ctx,view.step.title,portrait?w-96:1040);
   title.forEach((line,i)=>ctx.fillText(line,48,y+36+i*60));
-  const textY=y+42+title.length*60;ctx.font=portrait?'27px Arial':'23px Arial';ctx.fillStyle='#adc5bb';
+  const textY=y+42+title.length*60;ctx.font=portrait?'27px "RL Inter", Inter, Arial':'23px "RL Inter", Inter, Arial';ctx.fillStyle='#adc5bb';
   wrapVideoText(ctx,view.step.caption,portrait?w-96:1040).slice(0,3).forEach((line,i)=>ctx.fillText(line,48,textY+i*35));
   const metricY=portrait?textY+114:y+20,metricX=portrait?48:1170,total=portrait?w-96:w-1220,cell=total/rows.length;
   rows.forEach((row,i)=>{
-   const x=metricX+i*cell;ctx.fillStyle='#a4c2b6';ctx.font='19px Arial';ctx.fillText(row.label,x,metricY);
-   ctx.fillStyle='#e3dfc5';ctx.font=portrait?'42px Arial':'36px Arial';wrapVideoText(ctx,row.text,cell-18).slice(0,2).forEach((line,j)=>ctx.fillText(line,x,metricY+34+j*43));
-   if(row.detail&&row.value!==null){ctx.fillStyle='#a5bfb0';ctx.font='16px Consolas, monospace';ctx.fillText(row.detail,x,metricY+125);}
+   const x=metricX+i*cell;ctx.fillStyle='#a4c2b6';ctx.font='19px "RL Inter", Inter, Arial';ctx.fillText(row.label,x,metricY);
+   ctx.fillStyle='#e3dfc5';ctx.font=portrait?'42px "RL Inter", Inter, Arial':'36px "RL Inter", Inter, Arial';wrapVideoText(ctx,row.text,cell-18).slice(0,2).forEach((line,j)=>ctx.fillText(line,x,metricY+34+j*43));
+   if(row.detail&&row.value!==null){ctx.fillStyle='#a5bfb0';ctx.font='16px "RL Mono", Consolas, monospace';ctx.fillText(row.detail,x,metricY+125);}
   });
-  ctx.fillStyle='#a9cbbc';ctx.font=portrait?'23px Consolas, monospace':'20px Consolas, monospace';ctx.fillText(equations[view.step.kind],48,portrait?h-110:h-76);
-  ctx.font='16px Consolas, monospace';ctx.fillStyle='#9eb7ab';ctx.fillText('INDEPENDENT MODEL · ILLUSTRATIVE INPUTS · NOT TESLA PERFORMANCE DATA',48,h-40);
+  ctx.fillStyle='#a9cbbc';ctx.font=portrait?'23px "RL Mono", Consolas, monospace':'20px "RL Mono", Consolas, monospace';ctx.fillText(equations[view.step.kind],48,portrait?h-110:h-76);
+  ctx.font='16px "RL Mono", Consolas, monospace';ctx.fillStyle='#9eb7ab';ctx.fillText('INDEPENDENT MODEL · ILLUSTRATIVE INPUTS · NOT TESLA PERFORMANCE DATA',48,h-40);
   ctx.fillStyle='#263e35';ctx.fillRect(48,h-15,w-96,3);ctx.fillStyle='#b1dfc4';ctx.fillRect(48,h-15,(w-96)*view.clock/SHOWCASE_DURATION,3);this.frames++;this.frameTrack?.requestFrame();
  }
  finish(){if(this.finishing||this.cancelled)return;this.finishing=true;this.finishTimer=setTimeout(()=>{if(this.recorder?.state==='recording')this.recorder.stop();},100);}
