@@ -267,11 +267,14 @@ function observeDock(){
 }
 function syncDock(){
  const viewport=$('.viewport'),slot=$('.viewport-slot');if(!viewport||!slot)return;
- const want=!!scene&&!showcase&&!capture&&!dockDismissed&&slotRatio<.3&&(playing||(t>0&&t<duration()-1e-6));
+ // Mini player whenever the scene has scrolled away and a result exists, so a run can be replayed from the plots.
+ const want=!!scene&&!!run&&!showcase&&!capture&&!dockDismissed&&slotRatio<.3;
+ const play=$('#dock-play');if(play){const label=playing?'Pause':t>=duration()-.01?'Replay from the start':t>0?'Resume':'Play';play.innerHTML=icon(playing?'pause':'play');play.setAttribute('aria-label',label);play.title=label;}
+ if(run)viewport.style.setProperty('--dock-p',String(Math.min(1,t/duration())));
  if(want===docked)return;
  if(want)slot.style.height=viewport.offsetHeight+'px';else slot.style.removeProperty('height');
  docked=want;viewport.classList.toggle('docked',want);document.body.classList.toggle('scene-docked',want);
- $('#dock-return').hidden=!want;$('#dock-close').hidden=!want;
+ $('#dock-return').hidden=!want;$('#dock-close').hidden=!want;$('#dock-controls').hidden=!want;
  if(scene)scene.dirty=true;renderStageCard();
 }
 function wakeHud(){const viewport=$('.viewport');if(!viewport)return;viewport.classList.add('hud-awake');clearTimeout(hudTimer);hudTimer=setTimeout(()=>viewport.classList.remove('hud-awake'),2600);}
@@ -316,11 +319,12 @@ function mount(readyResult=null,resumeTime=0){const returnToTune=!!document.acti
      <div class="camera-tools"><button id="zoom-in" class="icon-btn" aria-label="Zoom in">+</button><button id="zoom-out" class="icon-btn" aria-label="Zoom out">−</button><button id="camera-reset" class="icon-btn" aria-label="Reset camera">${icon('reset')}</button></div>
     </div>
     <div class="view-tools hud-auto"><button id="cutaway" aria-pressed="false">${icon('layers')}<span>Cutaway</span><b class="toggle-state" aria-hidden="true"></b></button><button id="vectors" aria-pressed="false">${icon('arrow')}<span>Forces</span><b class="toggle-state" aria-hidden="true"></b></button><button id="overlay-toggle" aria-pressed="${physicsOverlay}" title="Live physics panel and previous-setup ghost">${icon('gauge')}<span>Physics</span><b class="toggle-state" aria-hidden="true"></b></button></div>
-    ${experiment==='launch'?`<div class="world-labels">${names.map((name,i)=>`<button data-world-focus="${i}" style="--scenario:${SCENARIO_COLORS[i].hex}">${name}<span></span></button>`).join('')}</div><div id="distance-marks"></div>`:''}
+    ${experiment==='launch'?`<div class="world-labels">${names.map((name,i)=>`<button data-world-focus="${i}" style="--scenario:${SCENARIO_COLORS[i].hex}">${name}<span></span><em></em></button>`).join('')}</div><div id="distance-marks"></div>`:''}
     ${experiment==='hop'?'<div class="hop-world-hud" aria-hidden="true"><div id="hop-ruler"></div><div id="hop-height-label" class="hop-height-label"></div><div id="hop-apex-label" class="hop-apex-label">APEX</div></div><div class="hop-scale-tag hud-auto">ALTITUDE RULER / METRES · 1:1</div>':''}
     ${experiment==='invert'?'<div id="invert-gauge" class="invert-gauge" aria-hidden="true"></div>':''}
     <div id="scene-error" hidden></div>
-    <button id="dock-return" class="dock-return" hidden>${icon('arrow')} Back to the scene</button>
+    <button id="dock-return" class="dock-return" hidden>${icon('arrow')}<span>Back to the scene</span></button>
+    <div id="dock-controls" class="dock-controls" hidden><button id="dock-replay" aria-label="Replay from the start" title="Replay from the start">${icon('reset')}</button><button id="dock-play" aria-label="Play" title="Play">${icon('play')}</button></div>
     <button id="dock-close" class="dock-close" aria-label="Close the mini player" hidden>×</button>
     <div class="corner-mark tl"></div><div class="corner-mark br"></div>
    </section>
@@ -409,6 +413,9 @@ function wire(){
  };
  $('#dock-return').onclick=()=>{$('.viewport-slot').scrollIntoView({behavior:reducedMotion()?'instant':'smooth',block:'center'});};
  $('#dock-close').onclick=()=>{dockDismissed=true;syncDock();};
+ // Mini-player transport: play/pause mirrors the main button; replay always restarts at t = 0.
+ $('#dock-play').onclick=()=>{if(busy||calculationError)return;$('#play').click();};
+ $('#dock-replay').onclick=()=>{if(busy||calculationError)return;sound.silence();impactStart=null;t=0;playing=true;cine=false;hideEndCard();update();};
  $('.viewport').addEventListener('pointerdown',wakeHud);$('.viewport').addEventListener('focusin',wakeHud);
  $('#scene').addEventListener('pointerdown',dismissOrbitHint,{once:true});
  if($('#launch-preset'))$('#launch-preset').onchange=e=>{
@@ -433,7 +440,7 @@ document.querySelectorAll('[data-param],[data-number-param]').forEach(el=>{
  };
 });
 $('#play').onclick=()=>{sound.silence();impactStart=null;if(t>=duration()-.01)t=0;playing=!playing;if(playing)hideEndCard();cine=false;update();};$('#rewind').onclick=()=>{sound.silence();impactStart=null;t=0;playing=false;cine=false;scene?.setCamera(selectedCamera());hideEndCard();update();};$('#timeline').oninput=e=>{sound.silence();impactStart=null;t=+e.target.value;if(t>=duration()-.01){t=duration();markRevealed();}playing=false;cine=false;update();};$('#speed').onclick=()=>{speed=speed===.5?1:speed===1?.25:.5;$('#speed').textContent=speed+'×';};
-$('#overlay-toggle').onclick=()=>{physicsOverlay=!physicsOverlay;try{localStorage.setItem('roadsterlab.overlay',physicsOverlay?'1':'0');}catch{}$('#overlay-toggle').setAttribute('aria-pressed',String(physicsOverlay));renderOverlay();};
+$('#overlay-toggle').onclick=()=>{physicsOverlay=!physicsOverlay;try{localStorage.setItem('roadsterlab.overlay',physicsOverlay?'1':'0');}catch{}$('#overlay-toggle').setAttribute('aria-pressed',String(physicsOverlay));renderOverlay();update();};
 for(const key of ['cutaway','vectors','compare']){const el=$('#'+key);if(el)el.onclick=()=>{if(key==='cutaway')cutaway=!cutaway;if(key==='vectors')vectors=!vectors;if(key==='compare')compare=!compare;if(key!=='compare'){if((key==='cutaway'&&cutaway)||(key==='vectors'&&vectors))closeUpForInspection();else restoreAfterInspection();}update();};}
 $('#camera-reset').onclick=()=>{cine=false;scene?.setCamera(selectedCamera());};$('#zoom-in').onclick=()=>scene?.nudgeZoom(-.55);$('#zoom-out').onclick=()=>scene?.nudgeZoom(.55);$('#defaults').onclick=()=>{noteTuningChange('Default setup');selectedPresets[experiment]=experiment==='invert'?'held':'default';Object.assign(c,DEFAULTS);if(experiment==='launch'){startGas=null;launchCount=1;}compare=false;cutaway=false;vectors=false;capture=false;cine=false;mount();};$('#capture-toggle').onclick=()=>{capture=!capture;applyCapture();};$('#repeat').onclick=()=>{startGas={...run.finalGas};launchCount++;hideEndCard();recompute(true,true);};$('#refill').onclick=()=>{startGas=null;launchCount=1;recompute();};document.querySelectorAll('#engineering summary').forEach(el=>el.addEventListener('click',()=>{playing=false;sound.silence();update();}));$('#about').onclick=()=>{playing=false;sound.silence();update();$('#model-dialog').showModal();};$('#close-dialog').onclick=()=>$('#model-dialog').close();$('#full-model').onclick=()=>{$('#model-dialog').close();$('#engineering').scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'start'});$('#engineering-title').tabIndex=-1;$('#engineering-title').focus({preventScroll:true});};$('#model-dialog').onclick=e=>{if(e.target===$('#model-dialog'))$('#model-dialog').close();};
 $('#share').onclick=async()=>{if(location.protocol==='file:'){toast('Sharing needs a hosted URL. Use CSV to export this experiment locally.');return;}const url=shareUrl();history.replaceState(null,'',url);try{await navigator.clipboard.writeText(url.href);toast('Experiment link copied.');}catch{toast('Preset saved in the address bar. Copy the URL to share.');}};
@@ -797,7 +804,9 @@ function positionLabels(){
   const i=+el.dataset.worldFocus,item=scene.annotations?.find(x=>x.mode===i);
   el.hidden=!visible[i]||!item?.point||(cutaway&&i===mode);
   if(item?.point){const caption=item.x.toFixed(1)+' m'+(item.status!=='ACTIVE'&&item.status!=='READY'?' · '+item.status:'');const label=el.querySelector('span');if(label.textContent!==caption)label.textContent=caption;
-    const compact=scene.canvas.clientWidth<600,width=compact?92:120,height=compact?34:42;
+    // With the Physics aids on, each car label also carries its live speed and acceleration.
+    const detail=el.querySelector('em'),u=speedUnit(units),line=physicsOverlay&&Number.isFinite(item.v)?`${(item.v*u.scale).toFixed(0)} ${u.label} · ${(item.a/G).toFixed(2)} g`:'';if(detail&&detail.textContent!==line)detail.textContent=line;el.classList.toggle('with-physics',!!line);
+    const compact=scene.canvas.clientWidth<600,width=compact?92:physicsOverlay?140:120,height=(compact?34:42)+(physicsOverlay?16:0);
     // At phone widths, use a stable three-column readout below the heading.
     // Stacking world anchors against the top clamp otherwise merges the labels.
     if(compact){el.style.left=((i+.5)*scene.canvas.clientWidth/3)+'px';el.style.top='150px';continue;}

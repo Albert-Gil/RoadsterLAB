@@ -1202,7 +1202,7 @@ body.showcase-mode .viewport-top{top:14px}
 /* Docked mini player keeps the simulation visible while reading the analysis. */
 .viewport-slot{position:relative}
 .viewport.docked{position:fixed;right:16px;bottom:16px;z-index:35;width:min(400px,calc(100vw - 32px));height:auto!important;aspect-ratio:16/9;border:1px solid #a6dfc966;border-radius:10px;box-shadow:0 18px 50px #000b}
-.viewport.docked>*:not(canvas):not(.dock-return):not(.dock-close){display:none!important}
+.viewport.docked>*:not(canvas):not(.dock-return):not(.dock-close):not(.dock-controls){display:none!important}
 .dock-return{position:absolute;inset:0;z-index:9;display:flex;align-items:flex-end;justify-content:flex-start;gap:8px;padding:10px;color:#e6f4ed;font-size:var(--fs-small);background:linear-gradient(transparent 55%,#06110fcc)}
 .dock-return svg{width:15px;height:15px;transform:rotate(-90deg)}
 .dock-close{position:absolute;top:6px;right:6px;z-index:10;width:36px;height:36px;border-radius:50%;background:#0d1f22dd;color:#e6f4ed;font-size:22px;line-height:1}
@@ -1349,3 +1349,16 @@ body.showcase-mode .viewport .view-tools,body.showcase-mode .viewport .scene-bot
  .view-tools button{gap:6px;padding:0 10px}
 }
 @container scene (max-width:560px){.physics-overlay,.physics-overlay[data-kind=turn]{left:10px;right:10px;width:auto}}
+/* Mini-player transport (M11): replay and play/pause stay reachable while reading the plots. */
+.dock-controls{position:absolute;right:6px;bottom:6px;z-index:10;display:flex;gap:6px}
+.dock-controls[hidden]{display:none}
+.dock-controls button{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#0d1f22e6;border:1px solid #a6dfc966;color:#e6f4ed}
+.dock-controls button svg{width:17px;height:17px}
+.dock-controls #dock-play{background:var(--coral);border-color:var(--coral);color:#251c1d}
+.dock-controls #dock-play svg{fill:currentColor}
+.viewport.docked::after{content:'';pointer-events:none;position:absolute;left:0;bottom:0;height:3px;width:calc(var(--dock-p,0) * 100%);background:var(--coral);z-index:11;border-radius:0 2px 2px 0}
+.world-labels em{display:block;font:var(--fs-caption) var(--mono);font-style:normal;color:#e6f2ec;line-height:1.4;margin-top:1px;white-space:nowrap}
+.world-labels button.with-physics{width:140px}
+@media(max-width:640px){.world-labels button.with-physics{width:92px}.world-labels em{white-space:normal}}
+.world-labels em:empty{display:none}
+@media(max-width:640px){.dock-return span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.dock-controls button{width:36px;height:36px}}
