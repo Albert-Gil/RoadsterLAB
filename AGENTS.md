@@ -375,3 +375,16 @@ and reveal.js are in both build paths; served audio prefers assets/audio/compres
 (regenerate with scripts/encode-web-audio.py) and falls back to WAV; the standalone keeps
 embedding WAVs. CSS: one :root token block and an 11 px type floor; add new rules to the
 M10 block rather than another override layer. See impulse/docs/M10-UX-REVIEW.md.
+
+
+M11 maintenance (2026-10-27, user-requested): overlay.js builds the live physics panel only
+from the current sample (never future outcomes) with one run-wide scale per result; keep it in
+both build paths. The Physics toggle (localStorage roadsterlab.overlay, `overlay=0|1`) also
+controls the previous-setup ghost; off must restore the M10 view. Launch samples carry
+traction/motor/resist from forces() (tire=min(traction,motor)); they are diagnostics, not CSV
+columns. Shadows: Scene.render records draw calls (drawM queue), draws the sun depth map
+(SUN must match the shader light), then replays; casters exclude floors/glass/plumes/ghosts/
+scenery/decals; keep the analytic shadows as fallback outside the map. New render state must
+stay optional so GPU-free CI mocks pass. Quality levels via setQuality (adaptive step-down in
+the frame loop unless `quality=` is set). Timeline markers show outcome events only once
+reached or after reveal. See impulse/docs/M11-VISUAL-PHYSICS.md.

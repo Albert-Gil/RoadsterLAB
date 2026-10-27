@@ -3,7 +3,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { Script } from 'node:vm';
 await mkdir('dist', { recursive: true });
 await copyFile('index.html', 'dist/index.html');
-for (const file of ['recorder.js','engineering.js','showcase.js','reveal.js','tuning.js','ui.js','app.js','scene.js','scenery.js','audio.js','audio-assets.js','audio-mapping.js','air-table.js','plots.js','hop.js','invert.js','turn.js','vessel.js','simulation-client.js','simulation-worker.js','style.css']) await copyFile(`src/${file}`, `dist/${file}`);
+for (const file of ['recorder.js','engineering.js','showcase.js','reveal.js','overlay.js','tuning.js','ui.js','app.js','scene.js','scenery.js','audio.js','audio-assets.js','audio-mapping.js','air-table.js','plots.js','hop.js','invert.js','turn.js','vessel.js','simulation-client.js','simulation-worker.js','style.css']) await copyFile(`src/${file}`, `dist/${file}`);
 const physicsSrc = stripTypeScriptTypes(await readFile('src/physics.ts','utf8'));
 await writeFile('dist/physics.js', physicsSrc);
 const html = await readFile('index.html','utf8'), css = await readFile('src/style.css','utf8');
@@ -50,6 +50,7 @@ const recorder=await readFile('src/recorder.js','utf8'),engineering=await readFi
 const showcase=await readFile('src/showcase.js','utf8');
 const tuning=await readFile('src/tuning.js','utf8');
 const reveal=await readFile('src/reveal.js','utf8');
+const overlay=await readFile('src/overlay.js','utf8');
 const ui=await readFile('src/ui.js','utf8');
 const plots=await readFile('src/plots.js','utf8'),client=await readFile('src/simulation-client.js','utf8');
 const hop=await readFile('src/hop.js','utf8');
@@ -59,7 +60,7 @@ const vessel=await readFile('src/vessel.js','utf8');
 const scenery=await readFile('src/scenery.js','utf8');
 const bundled='globalThis.ROADSTERLAB_AUDIO_DATA='+JSON.stringify(audioData)+';\n'+'globalThis.IMPULSE_WORKER_SOURCE='+JSON.stringify(workerBundle)+';\n'+bundle(new Map([
  ['air-table.js',air],['physics.js',physicsSrc],['audio-assets.js',audioAssets],['audio-mapping.js',audioMapping],['audio.js',audio],['hop.js',hop],['invert.js',invert],['turn.js',turn],['reveal.js',reveal],['scenery.js',scenery],['scene.js',scene],
- ['showcase.js',showcase],['recorder.js',recorder],['engineering.js',engineering],['tuning.js',tuning],['ui.js',ui],['simulation-client.js',client],['plots.js',plots],['vessel.js',vessel],['app.js',app]
+ ['showcase.js',showcase],['recorder.js',recorder],['engineering.js',engineering],['tuning.js',tuning],['ui.js',ui],['simulation-client.js',client],['plots.js',plots],['vessel.js',vessel],['overlay.js',overlay],['app.js',app]
 ]));
 await writeFile('dist/standalone-worker.js',workerBundle);
 // Check the artifact itself, not just its component files.
