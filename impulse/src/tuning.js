@@ -1,4 +1,5 @@
 // Explanations describe the implemented model; results always come from the solver.
+import {speedUnit} from './reveal.js';
 export const TUNING_GUIDES={
  launch:{title:'Shape the launch.',start:'Start with tire grip. Watch the electric and fan cases separate.',more:'Timing, power & tank',scope:'Three independent cars carry the same hardware and starting gas. Fan draw shares the electrical budget; only the thrust case discharges the tank. All inputs are illustrative.',presets:[['default','Default comparison','A shared starting point for all three systems.'],['grip','Low-grip road','Reduce tire grip to see where suction helps.'],['delay','Delayed boost','Move the gas pulse later in the launch.']]},
  invert:{title:'Find the holding limit.',start:'Set starting and final angles, then press Play. Change rotation duration or fan command to compare attachment.',more:'Seal, mass & damage rule',scope:'An 8 m deck rotates smoothly about a 5.5 m pivot, then holds for two seconds. The external rig motor supplies rotation; its energy is separate from vehicle fan draw. Locked tires use Coulomb friction. Overhang breaks the seal. Pitch follows the guide until detachment, then keeps its spin. New deck contact stops the model. Edge tipping, collision response and structural crashes remain unsupported.',presets:[['held','Rotate to inverted','Rotate from 0° to 180° with the fan on.'],['slide','Slide, lose seal, fall','Slow rotation with reduced fan command.'],['fall','Rotate without suction','Watch gravity overcome grip during rotation.'],['deck','Slide into ground contact','Rotate to 60° with low grip and no fan.'],['upright','Reverse rotation','Rotate from 180° back to upright.']]},
@@ -21,9 +22,11 @@ export function parameterHint(kind,key){
  if(key==='heatTransfer')return 'Overall heat conductance into the gas. Higher values make a cold tank recover temperature faster; zero disables heat exchange.';
  if(key==='heatSourceTemp')return 'Temperature of the assumed heat reservoir. Heat flows into colder gas and out of hotter gas.';return hints[kind]?.[key]||common[key]||'';}
 
-export function tuningRows(kind,result){
+export function tuningRows(kind,result,units='si'){
  const item=(id,label,value,unit,detail='')=>({id,label,value:Number.isFinite(value)?value:null,unit,detail,text:Number.isFinite(value)?`${value.toFixed(2)} ${unit}`:detail||'Unavailable'});
- if(kind==='launch')return result.runs.map((run,i)=>item('launch-'+i,['Electric only','Fan assisted','Thrust assisted'][i],run.sixty,'s',run.sixty===null?(run.status==='COMPLETE'?'Not reached':run.status):'0–60 mph'));
+ // SI leads: 0–100 km/h unless the viewer chose US speed units.
+ const milestone=speedUnit(units);
+ if(kind==='launch')return result.runs.map((run,i)=>item('launch-'+i,['Electric only','Fan assisted','Thrust assisted'][i],run[milestone.milestoneKey],'s',run[milestone.milestoneKey]===null?(run.status==='COMPLETE'?'Not reached':run.status):milestone.milestone));
  const run=result.runs[2];
  if(kind==='hop')return [item('apex',run.status==='OUT OF TABLE'||run.status==='TIME LIMIT'?'Max height in window':'Apex',run.peakHeight,'m'),item('landing','Landing speed',run.landingSpeed,'m/s',run.landingSpeed===null?run.status:run.landing?.outcome||'TOUCHDOWN')];
  if(kind==='invert')return [item('release','Rotation outcome',null,'',run.invert.outcome),item('impact','Impact speed',run.invert.impactSpeed,'m/s',run.invert.impactSpeed===null?(run.status==='HELD'?'No impact in hold':run.status):'First ground contact')];

@@ -47,6 +47,23 @@ the 11 loop sources run once and retain phase even when their gains are zero.
 Decoded PCM is about 22.6 MB at 48 kHz (more if the device resamples to a higher
 context rate). No external framework or network service is required.
 
+**Compressed delivery (2026-10-26).** `python scripts/encode-web-audio.py` (ffmpeg with
+libopus and AAC) writes `assets/audio/compressed/<name>.webm` (Opus) and `.m4a` (AAC-LC)
+from the processed WAVs, plus `manifest.json` with exact frame counts and SHA-256. The
+17 Opus files total about 0.96 MB (AAC about 1.44 MB) instead of 11.3 MB. Loops are
+encoded with a wrapped 0.25 s lead-in on both sides so the codec sees real neighbours at
+the seam; `conformBuffer` keeps exactly the original frames. The served page tries Opus,
+then AAC (by `canPlayType`), then the WAV, per file. Headless Chromium decoded every
+Opus and AAC copy with zero sample offset and the original length; Safari, Firefox and
+subjective listening remain to be checked on real devices. The WAV masters, catalog
+hashes and the standalone embedding are unchanged.
+
+The committed `.m4a` files also carry a signed Content Credentials (C2PA) box
+(5,877 bytes each, placed before `moov`) that was added when these files were delivered
+from the Claude session; chunk offsets were rewritten with it and the decoded PCM is
+identical (ffmpeg and Chromium). `manifest.json` records the delivered bytes and hashes.
+Re-running the encoder writes unstamped files and a matching manifest.
+
 The standalone HTML embeds the same processed WAVs as data URLs and decodes only
 on audio activation. Its larger size is deliberate offline support. Release staging copies
 the served asset directory and records the rights status in START-HERE.txt. Replacing recordings

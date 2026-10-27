@@ -101,7 +101,8 @@ test('Turn draws the solved world positions, painted lane edges and initialized 
    const entries=result.runs.map((r,mode)=>({...turnSample(r,time),mode}));
    scene.render({sample:entries[1].sample,c:DEFAULTS,experiment:'turn',entries,turn:{track:result.track,bounds:result.bounds,focus:1},vectors:true});
   }
-  assert.equal(uploads.length,1);assert.ok(uploads[0].p.every(Number.isFinite));
+  // Road and its gravel shoulder are uploaded once and reused across frames.
+  assert.equal(uploads.length,2);assert.ok(uploads.every(mesh=>mesh.p.every(Number.isFinite)));
   assert.equal(cars.length,3,'coincident start draws the selected case, then both separated cars');
   for(const i of [0,1]){const end=result.runs[i].samples.at(-1);assert.equal(cars[i+1][12],end.x);assert.equal(cars[i+1][14],end.z);}
   assert.equal(scene.canvas.dataset.turnState0,'OFF TRACK');assert.equal(scene.canvas.dataset.turnState1,'CORNER CLEAR');

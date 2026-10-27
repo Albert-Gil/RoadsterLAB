@@ -1,4 +1,7 @@
 const SVG_NS='http://www.w3.org/2000/svg';
+let plotInstances=0;
+// Speed display only; the solver and CSV stay in SI.
+const SPEED={kmh:{unit:'km/h',scale:3.6,milestoneKey:'hundred',milestoneSpeed:100/3.6},mph:{unit:'mph',scale:2.2369362920544,milestoneKey:'sixty',milestoneSpeed:26.8224}};
 const METRICS=[{key:'x',title:'Position',unit:'m',scale:1},{key:'v',title:'Velocity',unit:'km/h',scale:3.6},{key:'a',title:'Acceleration',unit:'g',scale:1/9.80665}];
 export function axisDomain(values,includeZero=true){
   let lo=Math.min(...values),hi=Math.max(...values);
@@ -30,7 +33,7 @@ export function plotEventLabels(events,width,duration){
 export class KinematicPlots {
   constructor(host,{colors,getSample,onScrub,metrics=METRICS,family="KINEMATICS",onInspect=()=>{}}){
     this.metrics=metrics;this.family=family;this.onInspect=onInspect;this.duration=6;this.host=host;this.colors=colors;this.getSample=getSample;this.onScrub=onScrub;
-    this.visible=[true,true,true];this.inspect=null;this.time=0;this.focus=2;this.accelerationUnit='g';
+    this.visible=[true,true,true];this.inspect=null;this.time=0;this.focus=2;this.accelerationUnit='g';this.speed=SPEED.kmh;this.revealed=true;this.uid='plot'+(++plotInstances);
     this.host.innerHTML=`<div class="inspection-bar"><span data-inspection>PLAYBACK · 0.00 s</span><span>Hover to inspect · drag / arrows to scrub</span><button data-live hidden>Return to playback</button><button data-accel aria-label="Change acceleration units">Acceleration: g</button></div><div class="kinematic-panels"></div>`;
     this.host.querySelector('[data-live]').onclick=()=>{this.setInspection(null);this.onInspect(null);};
     this.host.querySelector('[data-accel]').hidden=!this.metrics.some(m=>m.key==='a');
@@ -62,6 +65,9 @@ export class KinematicPlots {
   timeFromPointer(svg,e){const r=svg.getBoundingClientRect(),w=Number(svg.getAttribute('viewBox').split(' ')[2]);return Math.max(0,Math.min(this.duration,((e.clientX-r.left)/r.width*w-52)/(w-70)*this.duration));}
   setData(result,visible){this.result=result;this.duration=result.duration||6;this.visible=[...visible];this.inspect=null;this.draw();}
   setDisabled(disabled){this.disabled=disabled;this.host.classList.toggle('pending-result',disabled);}
+  // Unrevealed runs show only the played part of each trace; revealed runs ghost the future.
+  setReveal(revealed){if(this.revealed===revealed)return;this.revealed=revealed;this.host.querySelectorAll('.trace-future').forEach(g=>g.setAttribute('opacity',revealed?'.36':'0'));}
+  setSpeedUnits(units){const next=units==='us'?SPEED.mph:SPEED.kmh;if(next===this.speed)return;this.speed=next;this.draw();}
   draw(){
     if(!this.result)return;
     const focused=document.activeElement?.closest?.('svg[data-plot]'),focusKey=this.host.contains(focused)?focused?.dataset.plot:null;
@@ -72,15 +78,16 @@ export class KinematicPlots {
     this.geometry={w,h,l,iw};this.domains={};
     this.host.querySelector('[data-accel]').textContent='Acceleration: '+this.accelerationUnit;
     this.host.querySelector('.kinematic-panels').innerHTML=this.metrics.map((base,index)=>{
-      const metric=base.key==='a'&&this.accelerationUnit!=='g'?{...base,scale:1,unit:'m/s²'}:base;
+      const metric=base.key==='a'&&this.accelerationUnit!=='g'?{...base,scale:1,unit:'m/s²'}:base.key==='v'&&base.unit==='km/h'?{...base,scale:this.speed.scale,unit:this.speed.unit}:base;
       const values=this.result.runs.flatMap((run,i)=>this.visible[i]?run.samples.filter(s=>!metric.validKey||s[metric.validKey]>1e-8).map(s=>s[metric.key]*metric.scale):[]);
       const domain=axisDomain(values.length?values:[0,1],metric.zero!==false);this.domains[metric.key]=domain;
       const y=value=>top+(domain.hi-value)/(domain.hi-domain.lo)*ih;
       const ticks=[];for(let n=domain.lo;n<=domain.hi+domain.step*.001;n+=domain.step)ticks.push(n);
       const boostStart=l+this.result.config.boostAt/this.duration*iw,boostEnd=l+Math.min(this.duration,this.result.config.boostAt+2)/this.duration*iw;
       const traces=this.result.runs.map((run,i)=>!this.visible[i]?'':`<path class="scenario-trace" d="${tracePath(run.samples,metric.key,metric.scale,domain,w,h,this.duration,metric.validKey)}" fill="none" stroke="${this.colors[i].plot}" stroke-width="2" stroke-dasharray="${this.colors[i].dash}"/>${['COMPLETE','TOUCHDOWN','INSUFFICIENT LIFT','HELD','IMPACT','CORNER CLEAR','OFF TRACK'].includes(run.status)?'':`<circle cx="${l+run.samples.at(-1).t/this.duration*iw}" cy="${y(run.samples.at(-1)[metric.key]*metric.scale)}" r="4" fill="${this.colors[i].plot}"/><text x="${w-r-4}" text-anchor="end" y="${top+14+i*14}" fill="${this.colors[i].plot}">${run.status}</text>`}`).join('');
-      const milestones=metric.key==='v'?this.result.runs.map((run,i)=>this.visible[i]&&run.sixty!==null?`<circle cx="${l+run.sixty/this.duration*iw}" cy="${y(26.8224*3.6)}" r="3.5" fill="${this.colors[i].plot}"/>`:'').join(''):'';
-      return `<article class="kinematic-card"><header><div><small>0${index+1} / ${this.family}</small><h3>${metric.title}<span>${metric.unit}</span></h3></div><output aria-live="off" data-selected="${metric.key}"></output></header><svg data-plot="${metric.key}" viewBox="0 0 ${w} ${h}" role="slider" tabindex="0" aria-label="${metric.title}, scrub simulation time" aria-valuemin="0" aria-valuemax="${this.duration}" aria-valuenow="${this.time.toFixed(2)}">${this.family==='KINEMATICS'?`<rect x="${boostStart}" y="${top}" width="${boostEnd-boostStart}" height="${ih}" fill="#ef79550a"/><text class="boost-label" x="${boostStart+5}" y="16">BOOST WINDOW</text>`:''}${plotEventLabels(this.result.events||[],w,this.duration).map(e=>`<g><title>${e.label} / ${e.t.toFixed(2)} s</title><line x1="${l+e.t/this.duration*iw}" x2="${l+e.t/this.duration*iw}" y1="${top}" y2="${h-bottom}" stroke="#efb79275" stroke-dasharray="3 4"/>${e.row<0?'':`<text class="boost-label" x="${e.x}" y="${e.y}">${e.text}</text>`}</g>`).join('')}${ticks.map(n=>`<line x1="${l}" y1="${y(n)}" x2="${w-r}" y2="${y(n)}" stroke="${Math.abs(n)<1e-8?'#ffffff35':'#ffffff0e'}"/><text class="axis-label" x="${l-10}" y="${y(n)+4}" text-anchor="end">${format(n,Math.abs(n)<1?2:1)}</text>`).join('')}${Array.from({length:7},(_,i)=>`<line x1="${l+i/6*iw}" y1="${top}" x2="${l+i/6*iw}" y2="${h-bottom}" stroke="#ffffff08"/><text class="axis-label" x="${l+i/6*iw}" y="${h-11}" text-anchor="middle">${format(i/6*this.duration,2)}${i===6?' s':''}</text>`).join('')}${traces}${milestones}${this.colors.map((color,i)=>`<circle data-dot="${metric.key}-${i}" r="4" fill="${color.plot}" stroke="#111a1f" stroke-width="1.5"/>`).join('')}<line data-playhead x1="${l}" x2="${l}" y1="${top}" y2="${h-bottom}" stroke="#e4ecee90"/><line data-inspector x1="${l}" x2="${l}" y1="${top}" y2="${h-bottom}" stroke="#f5c1a7" stroke-dasharray="3 3" visibility="hidden"/><rect class="plot-hit" x="${l}" y="${top}" width="${iw}" height="${ih}" fill="transparent"/></svg><div class="plot-readouts">${this.colors.map((color,i)=>`<div style="--scenario:${color.hex}" ${!this.visible[i]?'hidden':''}><span>${color.name}</span><strong data-value="${metric.key}-${i}">—</strong></div>`).join('')}</div></article>`;
+      const mark=this.speed,milestones=metric.key==='v'&&base.unit==='km/h'?this.result.runs.map((run,i)=>this.visible[i]&&Number.isFinite(run[mark.milestoneKey])?`<circle cx="${l+run[mark.milestoneKey]/this.duration*iw}" cy="${y(mark.milestoneSpeed*mark.scale)}" r="3.5" fill="${this.colors[i].plot}"/>`:'').join(''):'';
+      const clip=`${this.uid}-${metric.key}`,future=this.revealed?'.36':'0';
+      return `<article class="kinematic-card"><header><div><small>0${index+1} / ${this.family}</small><h3>${metric.title}<span>${metric.unit}</span></h3></div><output aria-live="off" data-selected="${metric.key}"></output></header><svg data-plot="${metric.key}" viewBox="0 0 ${w} ${h}" role="slider" tabindex="0" aria-label="${metric.title}, scrub simulation time" aria-valuemin="0" aria-valuemax="${this.duration}" aria-valuenow="${this.time.toFixed(2)}">${this.family==='KINEMATICS'?`<rect x="${boostStart}" y="${top}" width="${boostEnd-boostStart}" height="${ih}" fill="#ef79550a"/><text class="boost-label" x="${boostStart+5}" y="16">BOOST WINDOW</text>`:''}${plotEventLabels(this.result.events||[],w,this.duration).map(e=>`<g><title>${e.label} / ${e.t.toFixed(2)} s</title><line x1="${l+e.t/this.duration*iw}" x2="${l+e.t/this.duration*iw}" y1="${top}" y2="${h-bottom}" stroke="#efb79275" stroke-dasharray="3 4"/>${e.row<0?'':`<text class="boost-label" x="${e.x}" y="${e.y}">${e.text}</text>`}</g>`).join('')}${ticks.map(n=>`<line x1="${l}" y1="${y(n)}" x2="${w-r}" y2="${y(n)}" stroke="${Math.abs(n)<1e-8?'#ffffff35':'#ffffff0e'}"/><text class="axis-label" x="${l-10}" y="${y(n)+4}" text-anchor="end">${format(n,Math.abs(n)<1?2:1)}</text>`).join('')}${Array.from({length:7},(_,i)=>`<line x1="${l+i/6*iw}" y1="${top}" x2="${l+i/6*iw}" y2="${h-bottom}" stroke="#ffffff08"/><text class="axis-label" x="${l+i/6*iw}" y="${h-11}" text-anchor="middle">${format(i/6*this.duration,2)}${i===6?' s':''}</text>`).join('')}<defs><clipPath id="${clip}-past"><rect data-clip-past x="0" y="0" width="${l}" height="${h}"/></clipPath><clipPath id="${clip}-future"><rect data-clip-future x="${l}" y="0" width="${w}" height="${h}"/></clipPath></defs><g class="trace-past" clip-path="url(#${clip}-past)">${traces}${milestones}</g><g class="trace-future" clip-path="url(#${clip}-future)" opacity="${future}">${traces}${milestones}</g>${this.colors.map((color,i)=>`<circle data-dot="${metric.key}-${i}" r="4" fill="${color.plot}" stroke="#111a1f" stroke-width="1.5"/>`).join('')}<line data-playhead x1="${l}" x2="${l}" y1="${top}" y2="${h-bottom}" stroke="#e4ecee90"/><line data-inspector x1="${l}" x2="${l}" y1="${top}" y2="${h-bottom}" stroke="#f5c1a7" stroke-dasharray="3 3" visibility="hidden"/><rect class="plot-hit" x="${l}" y="${top}" width="${iw}" height="${ih}" fill="transparent"/></svg><div class="plot-readouts">${this.colors.map((color,i)=>`<div style="--scenario:${color.hex}" ${!this.visible[i]?'hidden':''}><span>${color.name}</span><strong data-value="${metric.key}-${i}">—</strong></div>`).join('')}</div></article>`;
     }).join('');
     this.update(this.time,this.focus);
     if(focusKey)this.host.querySelector(`[data-plot="${focusKey}"]`)?.focus({preventScroll:true});
@@ -94,12 +101,14 @@ export class KinematicPlots {
     this.host.querySelectorAll('svg[data-plot]').forEach(svg=>{
       const x=l+time/this.duration*iw,hover=l+at/this.duration*iw;
       svg.querySelector('[data-playhead]').setAttribute('x1',x);svg.querySelector('[data-playhead]').setAttribute('x2',x);
+      const past=svg.querySelector('[data-clip-past]'),later=svg.querySelector('[data-clip-future]');if(past){past.setAttribute('width',Math.max(0,x+.5));later.setAttribute('x',x+.5);}
       const line=svg.querySelector('[data-inspector]');line.setAttribute('x1',hover);line.setAttribute('x2',hover);line.setAttribute('visibility',inspect===null?'hidden':'visible');
       svg.setAttribute('aria-valuenow',time.toFixed(2));svg.setAttribute('aria-valuetext',`${time.toFixed(2)} of ${this.duration.toFixed(2)} seconds`);
     });
     for(const metric of this.metrics){
-      const scale=metric.key==='a'&&this.accelerationUnit!=='g'?1:metric.scale;
-      const unit=metric.key==='a'?this.accelerationUnit:metric.unit;
+      const speed=metric.key==='v'&&metric.unit==='km/h';
+      const scale=metric.key==='a'&&this.accelerationUnit!=='g'?1:speed?this.speed.scale:metric.scale;
+      const unit=metric.key==='a'?this.accelerationUnit:speed?this.speed.unit:metric.unit;
       this.result.runs.forEach((run,i)=>{
         const state=this.getSample(run,at),inactive=metric.validKey&&!(state.sample[metric.validKey]>1e-8),value=state.ended&&state.unsupported?'Stopped':inactive?'No flow':`${(state.sample[metric.key]*scale).toFixed(metric.key==='a'?2:1)} ${unit}${state.ended&&run.status==='OFF TRACK'?' / run end':state.ended&&run.status==='CORNER CLEAR'?' / exit':''}`;
         text(this.host.querySelector(`[data-value="${metric.key}-${i}"]`),value);

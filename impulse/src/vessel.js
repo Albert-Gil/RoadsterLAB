@@ -82,22 +82,25 @@ export class VesselAnalysis {
   }
   setDisabled(value){this.plots.setDisabled(value);this.host.classList.toggle('pending-result',value);this.host.querySelectorAll('button').forEach(b=>b.disabled=value);}
   setInspection(time){this.inspection=time;this.plots.setInspection(time);this.drawState();}
+  setReveal(revealed){this.plots.setReveal(revealed);}
   update(time,focus,playing=false){this.playing=playing;this.time=time;this.focus=focus;this.plots.update(time,focus);this.drawState();}
   drawState(){
     if(!this.result)return;
     const at=this.inspection??this.time,run=this.result.runs[this.focus],state=this.getSample(run,at),s=state.sample;
     const view=vesselDisplay(s,this.referenceMass),text=(key,value)=>{const el=this.host.querySelector(`[data-${key}]`);if(el.textContent!==value)el.textContent=value;};
-    const stopped=state.unsupported&&at>=state.endTime-1e-8,flowing=!stopped&&s.flow>1e-8;
-    const config=this.result.config,commanded=!stopped&&this.focus===2&&(this.kind==='hop'?((s.valve??0)>0||at<config.pulse||s.limit==='LANDING BURN'||s.limit==='INSUFFICIENT BRAKING'):at>=config.boostAt&&at<config.boostAt+2);
+    // Before playback starts the vessel is ready with its valve closed, even when ignition is scheduled at T+0.
+    const ready=this.inspection===null&&at<=0&&!this.playing;
+    const stopped=state.unsupported&&at>=state.endTime-1e-8,flowing=!ready&&!stopped&&s.flow>1e-8;
+    const config=this.result.config,commanded=!ready&&!stopped&&this.focus===2&&(this.kind==='hop'?((s.valve??0)>0||at<config.pulse||s.limit==='LANDING BURN'||s.limit==='INSUFFICIENT BRAKING'):at>=config.boostAt&&at<config.boostAt+2);
     text('vessel-focus',this.colors[this.focus].name.toUpperCase()+' / '+(this.inspection===null?'PLAYBACK':'INSPECTING')+' '+at.toFixed(2)+' s');
-    text('vessel-state',stopped?'RUN STOPPED':flowing?'VALVE OPEN / DISCHARGING':commanded?'VALVE OPEN / NO FLOW':'VALVE CLOSED / HOLDING');
+    text('vessel-state',ready?'READY / VALVE CLOSED':stopped?'RUN STOPPED':flowing?'VALVE OPEN / DISCHARGING':commanded?'VALVE OPEN / NO FLOW':'VALVE CLOSED / HOLDING');
     text('vessel-volume',this.result.config.volume+' L / schematic');
     text('tank-pressure',view.pressure.toFixed(1)+' bara');text('tank-gauge',(view.pressure-1.01325).toFixed(1)+' barg');
     text('tank-temp',view.temp.toFixed(1)+' K');text('tank-celsius',view.celsius.toFixed(1)+' °C');
     text('tank-mass',view.mass.toFixed(1)+' kg');text('tank-inventory',(view.fraction*100).toFixed(1)+'% of reference fill · '+Math.max(0,run.samples[0].gas-view.mass).toFixed(1)+' kg used this run');
     const color=`rgb(${Math.round(211-104*view.cold)},${Math.round(165+37*view.cold)},${Math.round(125+114*view.cold)})`;
     const particles=this.host.querySelector('[data-gas-particles]');particles.setAttribute('fill',color);particles.setAttribute('opacity',String(.08+.82*view.fraction));
-    const opening=stopped?0:Math.max(0,Math.min(1,s.valve??(flowing?1:0))),ratio=config.expansionRatio??1;
+    const opening=stopped||ready?0:Math.max(0,Math.min(1,s.valve??(flowing?1:0))),ratio=config.expansionRatio??1;
     this.host.querySelector('[data-valve-disk]').setAttribute('transform',`rotate(${opening*90} 365 89)`);
     this.host.querySelector('[data-feed-line]').setAttribute('stroke',flowing?'#91c7bb':'#71878f');
     const mouth=7*Math.sqrt(ratio);
@@ -111,7 +114,8 @@ export class VesselAnalysis {
     text('delivery-expansion',s.separated?'Separated / throat-only approximation':ratio>1?`Bell ${ratio.toFixed(2)}× · ${flowing?'Mach '+(s.nozzleMach??0).toFixed(2):'exit / throat area'}`:'Converging · exit = throat');
     this.host.querySelector('[data-vessel-jet]').setAttribute('opacity',flowing?String(Math.min(.9,.2+s.flow/100)):0);
     this.host.classList.toggle('discharging',flowing);this.host.classList.toggle('playback-running',!!this.playing&&this.inspection===null);
-    text('vessel-insight',stopped?'Last supported state · '+run.status:flowing?`Gas removes stagnation enthalpy; heat input ${((s.heatRate??0)/1000).toFixed(1)} kW. ${s.choked?'Choked, underexpanded exit.':'Unchoked or zero flow.'}`:commanded?'Open command, but no discharge at the available pressure.':'Closed valve: mass holds; heat exchange can change temperature and pressure.');
+    const ignition=this.kind==='hop'?0:config.boostAt;
+    text('vessel-insight',ready?`Ready with a full charge. The valve opens at T+${ignition.toFixed(2)} s once the run starts.`:stopped?'Last supported state · '+run.status:flowing?`Gas removes stagnation enthalpy; heat input ${((s.heatRate??0)/1000).toFixed(1)} kW. ${s.choked?'Choked, underexpanded exit.':'Unchoked or zero flow.'}`:commanded?'Open command, but no discharge at the available pressure.':'Closed valve: mass holds; heat exchange can change temperature and pressure.');
   }
   dispose(){this.plots.dispose();}
 }

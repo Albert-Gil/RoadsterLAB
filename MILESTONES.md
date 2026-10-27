@@ -1023,3 +1023,31 @@ Hop exports were byte-identical. Actual desktop/390 px controls opened/closed wi
 no horizontal overflow; Launch/Hop/Invert/Turn inspected with no browser warnings
 or errors observed. See impulse/docs/PLUME-REVIEW.md and share/plumes-20261021/.
 Physical devices and final visual review remain open. Local only; no publication.
+
+## M10 UX, graphics and delivery pass — 2026-10-26, local
+
+User request: implement every recommendation from the UX/UI/graphics review, keeping the
+dependency-free renderer (Three.js port declined for now) and editing the local folder in
+place. Physics, solver results, CSV and worker/standalone parity are unchanged.
+
+Stage-first layout (tabs in the top bar, compact heading, window-fitted scene, primary
+action inside the first screen at 360–1440 px); one camera control inside every scene;
+predict-then-reveal with solver-graded questions (`src/reveal.js`) and veiled outcomes until
+the run ends, the viewer skips, or Parameters is open; progressive plots and Turn plan view;
+analysis tabs with Launch small multiples; docked mini player; HUD that steps back during
+playback; Cutaway/Forces close-up with restore; SI-led milestones with a km/h ⇄ mph toggle;
+vessel READY state; self-hosted Inter/JetBrains Mono; one token block, 11 px type floor,
+41 dead rules removed and the restyled components consolidated. Graphics: time-driven Launch
+director with reduced-motion fallback, distance boards/posts, wheel blur, distance beacons,
+solver-gated rubber and scrub marks, Turn gravel shoulder, bloom + vignette pass, touchdown
+dust/shake/flash, Hop pad and Invert rig dressing with a θ protractor. Fixed an existing
+floor/coast depth fight that made cars appear to sit on sand (without a depth bias, which
+hid the Turn road and Hop pad on a real GPU), and drew the Launch floor back to the start
+line. Served audio now uses Opus or
+AAC copies (~0.96 / 1.44 MB instead of 11.3 MB) with per-file WAV fallback.
+
+Verification: 154/154 tests (6 new, one Turn upload-count update for the shoulder mesh);
+syntax checks; headless Chromium functional script, layout/contrast/tap-target audit at six
+widths, showcase start/exit and video-export start. See impulse/docs/M10-UX-REVIEW.md and
+impulse/share/ux-20261026/. Real GPUs/phones, assistive technology, Safari/Firefox audio
+decoding and aesthetic sign-off remain open. Nothing committed, pushed or deployed.

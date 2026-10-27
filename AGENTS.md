@@ -356,3 +356,22 @@ LinkedIn studio supplies a private SimulationAudio master/limiter stream with mu
 and sample-driven effects, ending cleanup and background cancellation. Its audio
 request supersedes the earlier silent-publication-video direction. General exports
 without an audio stream remain silent; never capture a microphone or system audio.
+
+
+M10 maintenance (2026-10-26, user-requested UX/graphics pass): reveal.js grades
+predictions only from solver results; unresolved states stay ungraded. Veil outcome text
+with data-spoiler until the setup's revealKey is marked (run end, scrub to end, Skip) or
+Parameters is open; demo/capture/showcase never veil. Plots ghost the future only as
+display state. The Launch director (camera 'cinema', default unless reduced motion) must
+stay a pure function of simulation time; kick/shake/flash/dust are skipped for reduced
+motion. Tire/scrub marks follow TRACTION LIMITED / GRIP LIMITED samples only. The ready
+frame (t=0, paused) hides jets and shows READY / VALVE CLOSED; physics samples are
+untouched. Scene.render = renderScene + optional bloom/vignette (`?post=0` disables); keep
+new render state optional so CI mocks without a GPU still pass. Keep experiment floors
+above the coastal plane (-0.12 m) and the distance-scaled near plane; do not add a
+polygon offset to floors (its slope term hid roads/pads on real GPUs), keep road/pad layers
+at least ~1 cm apart, and draw the Launch floor back past the start line. Self-hosted fonts
+and reveal.js are in both build paths; served audio prefers assets/audio/compressed
+(regenerate with scripts/encode-web-audio.py) and falls back to WAV; the standalone keeps
+embedding WAVs. CSS: one :root token block and an 11 px type floor; add new rules to the
+M10 block rather than another override layer. See impulse/docs/M10-UX-REVIEW.md.
