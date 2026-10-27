@@ -269,7 +269,7 @@ function syncDock(){
  const viewport=$('.viewport'),slot=$('.viewport-slot');if(!viewport||!slot)return;
  // Mini player whenever the scene has scrolled away and a result exists, so a run can be replayed from the plots.
  const want=!!scene&&!!run&&!showcase&&!capture&&!dockDismissed&&slotRatio<.3;
- const play=$('#dock-play');if(play){const label=playing?'Pause':t>=duration()-.01?'Replay from the start':t>0?'Resume':'Play';play.innerHTML=icon(playing?'pause':'play');play.setAttribute('aria-label',label);play.title=label;}
+ const play=$('#dock-play');if(play&&run){const label=playing?'Pause':t>=duration()-.01?'Replay from the start':t>0?'Resume':'Play';play.innerHTML=icon(playing?'pause':'play');play.setAttribute('aria-label',label);play.title=label;}
  if(run)viewport.style.setProperty('--dock-p',String(Math.min(1,t/duration())));
  if(want===docked)return;
  if(want)slot.style.height=viewport.offsetHeight+'px';else slot.style.removeProperty('height');
@@ -571,7 +571,7 @@ function stopShowcase(){
  window.scrollTo({left:saved.scroll[0],top:saved.scroll[1],behavior:'instant'});$('#showcase-start')?.focus({preventScroll:true});
 }
 function queueDemo(){if(!demoQueued)return;demoQueued=false;speed=1;const speedBtn=$('#speed');if(speedBtn)speedBtn.textContent='1×';if(reducedMotion())return;setTimeout(()=>{if(showcase||!scene||document.hidden||experiment!=='launch'||busy||!run||playing||t!==0)return;t=0;playing=true;cine=true;hideEndCard();update();},900);}
-function duration(){return experiment==='launch'?6:experiment==='turn'?(comparison?.duration??.01):Math.max(.01,run.samples.at(-1).t);}
+function duration(){return experiment==='launch'?6:experiment==='turn'?(comparison?.duration??.01):Math.max(.01,run?.samples?.at(-1)?.t??0);}
 function set(id,value){const el=$('#'+id);if(el&&el._lastMarkup!==String(value)){el.innerHTML=value;el._lastMarkup=String(value);}}
 function legendFor(){
   const hide=experiment==='hop';
