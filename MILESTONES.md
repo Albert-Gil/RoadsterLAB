@@ -1051,3 +1051,20 @@ syntax checks; headless Chromium functional script, layout/contrast/tap-target a
 widths, showcase start/exit and video-export start. See impulse/docs/M10-UX-REVIEW.md and
 impulse/share/ux-20261026/. Real GPUs/phones, assistive technology, Safari/Firefox audio
 decoding and aesthetic sign-off remain open. Nothing committed, pushed or deployed.
+
+## M11 live physics panel, shadows and visualization — 2026-10-27, local
+
+Live physics panel with a Physics toggle (remembered; `overlay=0|1`): Launch force budget
+(tire force with grip and motor ceilings, thrust, drag, net g), Turn friction circle for both
+cars, Invert contact budget, Hop thrust/weight; current solver state only, phone one-liner.
+Launch samples now record the existing `traction`, `motor` and `resist` force-model values
+(trajectories identical, not in CSV). Timeline event markers (reveal-aware, click to jump);
+previous-setup ghost for Launch and Hop; utilization-coloured Turn path trails; Turn Corner
+framing fitted to the real road and paths along its long axis; 3D force arrows; distance
+labels hidden under car labels. Real-time sun shadow map (8-tap PCF, texel-snapped) with
+analytic fallback; adaptive quality (`quality=high|medium|low`). Fixes: phone status pill
+overlap, 1280 px top-bar collision, narrow-scene toolbar overlap, undefined ghost materials.
+
+Verification: 158/158 tests (4 new); functional browser script, layout audit at six widths,
+screenshots in impulse/share/m11-20261027/. Real-GPU cost/look of shadows, physical phones
+and aesthetic sign-off remain open. See impulse/docs/M11-VISUAL-PHYSICS.md.

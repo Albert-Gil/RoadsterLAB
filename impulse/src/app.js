@@ -14,8 +14,9 @@ import {SimulationAudio} from './audio.js';
 import {Scene,SCENARIO_COLORS} from './scene.js';
 import {PREDICTIONS,gradePrediction,revealKey,speedUnit} from './reveal.js';
 import {SCENERY_NAME} from './scenery.js';
+import {launchBudget,turnCircle,invertBudget,hopBudget,overlayScale,overlayHTML} from './overlay.js';
 const $=s=>document.querySelector(s);
-const icons={bolt:'<path d="m13 2-8 12h6l-1 8 9-13h-7z"/>',play:'<path d="m8 5 11 7-11 7z"/>',pause:'<path d="M8 5v14M16 5v14"/>',reset:'<path d="M3 10a9 9 0 1 1 1 8M3 4v6h6"/>',arrow:'<path d="M5 12h14m-5-5 5 5-5 5"/>',layers:'<path d="m12 3 10 6-10 6L2 9zm-10 12 10 6 10-6M2 15l10 6 10-6"/>',share:'<path d="M12 16V3m-5 5 5-5 5 5M5 13v7h14v-7"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/>',expand:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',download:'<path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"/>',sliders:'<path d="M4 8h16M4 16h10M8 8v0M14 16v0"/><circle cx="8" cy="8" r="2.2"/><circle cx="14" cy="16" r="2.2"/>',sound:'<path d="M4 10v4h4l5 4V6L8 10zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',mute:'<path d="M4 10v4h4l5 4V6L8 10zM17 9l5 6m0-6-5 6"/>'};
+const icons={bolt:'<path d="m13 2-8 12h6l-1 8 9-13h-7z"/>',play:'<path d="m8 5 11 7-11 7z"/>',pause:'<path d="M8 5v14M16 5v14"/>',reset:'<path d="M3 10a9 9 0 1 1 1 8M3 4v6h6"/>',arrow:'<path d="M5 12h14m-5-5 5 5-5 5"/>',layers:'<path d="m12 3 10 6-10 6L2 9zm-10 12 10 6 10-6M2 15l10 6 10-6"/>',share:'<path d="M12 16V3m-5 5 5-5 5 5M5 13v7h14v-7"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/>',expand:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',download:'<path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"/>',sliders:'<path d="M4 8h16M4 16h10M8 8v0M14 16v0"/><circle cx="8" cy="8" r="2.2"/><circle cx="14" cy="16" r="2.2"/>',sound:'<path d="M4 10v4h4l5 4V6L8 10zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',mute:'<path d="M4 10v4h4l5 4V6L8 10zM17 9l5 6m0-6-5 6"/>',gauge:'<path d="M4 17a8 8 0 1 1 16 0"/><path d="m12 17 4.5-5.5"/>'};
 const icon=(name)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]||icons.bolt}</svg>`;
 const c={...DEFAULTS};const bounds={mass:[1200,2600],power:[400,1300],grip:[.4,1.8],fan:[0,100],pressure:[ATM/1e5,gaugeToAbsoluteBar(650)],volume:[80,600],nozzle:[2,20],boostAt:[0,2],leak:[0,100],angle:[0,180],invertStart:[0,180],invertDuration:[1,20],heatTransfer:[0,2000],heatSourceTemp:[250,350],pulse:[.1,1.5],landingBurn:[0,2],wreckSpeed:[1,20],landingTarget:[.25,5],landingLead:[0,.2],manualBurnAt:[0,120],manualBurnDuration:[0,5],manualBurnCommand:[0,100],turnSpeed:[30/3.6,180/3.6],turnSteer:[-15*Math.PI/180,15*Math.PI/180],turnRadius:[20,80],turnSweep:[Math.PI/4,Math.PI*2/3],turnWidth:[8,16]};
 Object.assign(bounds,{valveRise:[0,.2],feedLoss:[0,30],expansionRatio:[1,1.5]});
@@ -61,6 +62,11 @@ let turnCamera=params.get('turnCamera')==='field'?'field':'focus',turnFocus=para
 let invertCamera=params.get('invertCamera')==='track'?'track':'field';
 let hopCamera=['track','under'].includes(params.get('hopCamera'))?params.get('hopCamera'):'field',impactStart=null;
 let camera=['cinema','field','side','focus'].includes(params.get('camera'))?params.get('camera'):matchMedia('(prefers-reduced-motion: reduce)').matches?'field':'cinema',autoFrame=params.get('autoFrame')!=='0',autoCloseFrom=null;
+// Live physics panel (M11). On by default; the choice is remembered per browser and `overlay=0|1` overrides it.
+let physicsOverlay=params.has('overlay')?params.get('overlay')!=='0':(()=>{try{return localStorage.getItem('roadsterlab.overlay')!=='0';}catch{return true;}})();
+// Graphics quality: 2 = shadows + bloom, 1 = lighter shadows, 0 = neither. `quality=high|medium|low` pins it; otherwise it steps down when playback is slow.
+const QUALITY_PARAM={high:2,medium:1,low:0}[params.get('quality')];
+let quality=QUALITY_PARAM??2;
 let units=['si','us'].includes(params.get('units'))?params.get('units'):(()=>{try{return localStorage.getItem('roadsterlab.units')==='us'?'us':'si';}catch{return 'si';}})();
 const analysisTab={};
 let launchMarks=[0,0,0],turnMarks=[];
@@ -109,6 +115,7 @@ function computeMarks(result){
  turnMarks=experiment==='turn'?result.runs.map(r=>{const out=[];let last=null;for(const s of r.samples){if(!String(s.limit).startsWith('GRIP LIMITED'))continue;if(last&&Math.hypot(s.x-last.x,s.z-last.z)<.6)continue;last=s;out.push({x:s.x,z:s.z,yaw:s.yaw??0,t:s.t,len:.75});}return out;}):[];
 }
 function installResult(result,resumeTime=0){
+ previousResult=lastInstalled&&lastInstalled!==result&&lastInstalled.config&&['launch','hop'].includes(experiment)?lastInstalled:null;lastInstalled=result;
  latestResult=result;computeMarks(result);comparison=['launch','turn'].includes(experiment)?result:null;activeConfig={...result.config};runs=comparison?result.runs:[];
  run=result.runs[experiment==='launch'?mode:experiment==='turn'?turnFocus:2];hopData=experiment==='hop'?hopSummary(run,activeConfig):null;
  t=Math.min(resumeTime,experiment==='launch'?6:experiment==='turn'?result.duration:run.samples.at(-1).t);
@@ -274,7 +281,7 @@ function setUnits(value){
  document.querySelectorAll('[data-units]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.units===units)));
  plots?.setSpeedUnits(units);if(latestResult){tuningResult=tuningRows(experiment,latestResult,units);tuningPrevious=null;tuningEdit='';tuningEdits=[];renderTuningFeedback();}drawPlots();update();
 }
-function mount(readyResult=null,resumeTime=0){const returnToTune=!!document.activeElement?.closest('#tuning-panel');if(tuningKind!==experiment){tuningKind=experiment;tuningResult=null;tuningPrevious=null;tuningEdit='';tuningEdits=[];}disposeUI();sound.silence();lastSize='';frameIntervals=[];renderCosts=[];lastFrameTime=0;turnMap?.dispose();turnMap=null;document.body.classList.remove('setup-open');plots?.dispose();plots=null;vessel?.dispose();vessel=null;client.cancel();run=null;hopData=null;comparison=null;runs=[];scene?.dispose();scene=null;const m=metadata[experiment],speedLabel=speedUnit(units).label;$('#root').innerHTML=`<a class="skip-link" href="#scene">Skip to vehicle</a>
+function mount(readyResult=null,resumeTime=0){const returnToTune=!!document.activeElement?.closest('#tuning-panel');if(tuningKind!==experiment){tuningKind=experiment;tuningResult=null;tuningPrevious=null;tuningEdit='';tuningEdits=[];}disposeUI();sound.silence();lastSize='';frameIntervals=[];renderCosts=[];lastFrameTime=0;turnMap?.dispose();turnMap=null;document.body.classList.remove('setup-open');plots?.dispose();plots=null;vessel?.dispose();vessel=null;client.cancel();run=null;hopData=null;comparison=null;runs=[];previousResult=null;lastInstalled=null;scene?.dispose();scene=null;const m=metadata[experiment],speedLabel=speedUnit(units).label;$('#root').innerHTML=`<a class="skip-link" href="#scene">Skip to vehicle</a>
 <header class="topbar">
  <a class="brand" href="./" aria-label="RoadsterLAB home"><span class="brand-symbol">${icon('bolt')}</span><span class="brand-wordmark">Roadster<span>LAB</span></span><span class="brand-divider"></span><small>INTERACTIVE VEHICLE PHYSICS</small></a>
  <nav class="tabs hud-tabs mode-tabs" aria-label="Simulations">${['launch','invert','hop','turn'].map((x,i)=>`<button data-tab="${x}" class="${experiment===x?'active':''}" ${experiment===x?'aria-current="page"':''}><small>0${i+1}</small>${x[0].toUpperCase()+x.slice(1)}</button>`).join('')}</nav>
@@ -301,12 +308,14 @@ function mount(readyResult=null,resumeTime=0){const returnToTune=!!document.acti
     </div>
     <div id="calculation-status" class="calculation-status" role="status" hidden></div>
     <div id="stage-card" class="stage-card" hidden></div>
+    <div id="physics-overlay" class="physics-overlay" data-kind="${experiment}" hidden></div>
+    <span id="ghost-label" class="ghost-label" hidden>Previous setup</span>
     <div id="cutaway-label" class="cutaway-label" hidden><i></i><div>PRESSURE VESSEL<small id="tank-label">${c.volume} L · compressed air</small></div></div>
     <div class="scene-bottom hud-auto">
      <span class="orbit-hint">${icon('expand')} DRAG / PINCH <span>·</span> ARROWS ORBIT <span>·</span> ± ZOOM</span>
      <div class="camera-tools"><button id="zoom-in" class="icon-btn" aria-label="Zoom in">+</button><button id="zoom-out" class="icon-btn" aria-label="Zoom out">−</button><button id="camera-reset" class="icon-btn" aria-label="Reset camera">${icon('reset')}</button></div>
     </div>
-    <div class="view-tools hud-auto"><button id="cutaway" aria-pressed="false">${icon('layers')}<span>Cutaway</span><b class="toggle-state" aria-hidden="true"></b></button><button id="vectors" aria-pressed="false">${icon('arrow')}<span>Forces</span><b class="toggle-state" aria-hidden="true"></b></button></div>
+    <div class="view-tools hud-auto"><button id="cutaway" aria-pressed="false">${icon('layers')}<span>Cutaway</span><b class="toggle-state" aria-hidden="true"></b></button><button id="vectors" aria-pressed="false">${icon('arrow')}<span>Forces</span><b class="toggle-state" aria-hidden="true"></b></button><button id="overlay-toggle" aria-pressed="${physicsOverlay}" title="Live physics panel and previous-setup ghost">${icon('gauge')}<span>Physics</span><b class="toggle-state" aria-hidden="true"></b></button></div>
     ${experiment==='launch'?`<div class="world-labels">${names.map((name,i)=>`<button data-world-focus="${i}" style="--scenario:${SCENARIO_COLORS[i].hex}">${name}<span></span></button>`).join('')}</div><div id="distance-marks"></div>`:''}
     ${experiment==='hop'?'<div class="hop-world-hud" aria-hidden="true"><div id="hop-ruler"></div><div id="hop-height-label" class="hop-height-label"></div><div id="hop-apex-label" class="hop-apex-label">APEX</div></div><div class="hop-scale-tag hud-auto">ALTITUDE RULER / METRES · 1:1</div>':''}
     ${experiment==='invert'?'<div id="invert-gauge" class="invert-gauge" aria-hidden="true"></div>':''}
@@ -320,7 +329,7 @@ function mount(readyResult=null,resumeTime=0){const returnToTune=!!document.acti
     <button id="play" class="launch-button" aria-keyshortcuts="Space">${icon('play')}<span>${m.action}</span></button>
     <button id="edit-parameters" class="parameters-link parameters-button">${icon('sliders')}<span>Parameters</span></button>
     <button id="rewind" class="icon-btn rewind-btn" aria-label="Rewind playback">${icon('reset')}</button>
-    <div class="time-controls"><div><span id="time">T + 0.00 s</span><span id="duration">06.00 s</span></div><input id="timeline" aria-label="Simulation time" type="range" min="0" max="6" step=".01" value="0"/></div>
+    <div class="time-controls"><div><span id="time">T + 0.00 s</span><span id="duration">06.00 s</span></div><input id="timeline" aria-label="Simulation time" type="range" min="0" max="6" step=".01" value="0"/><div id="timeline-events" class="timeline-events" role="group" aria-label="Run events"></div></div>
     <button id="speed" class="speed-button" aria-label="Change playback speed" title="Cycle playback: 1×, 0.25×, 0.5×">${speed}×</button>
    </div>
    ${experiment==='hop'?'<div id="manual-fire-row" class="manual-fire-row" hidden><button id="manual-fire" disabled>Fire manual burn now</button><span id="manual-fire-note">Available during descent, before ignition. The scheduled window will still fire unless moved.</span></div>':''}
@@ -352,7 +361,7 @@ ${engineeringSection()}<footer><span><i></i> Assumed parameters. Not affiliated 
 </main>
 <dialog id="model-dialog" aria-labelledby="model-title"><button id="close-dialog" class="close-dialog" aria-label="Close model documentation">×</button><div class="eyebrow">THE ENGINEERING BEHIND THE EXPERIENCE</div><h2 id="model-title">Real principles.<br>Open assumptions.</h2><p>RoadsterLAB is an independent, reduced-order physics experiment inspired by the Roadster. It does not predict or validate Tesla vehicle performance.</p><button id="full-model" class="quiet">Explore all equations &amp; assumptions</button><div class="doc-grid"><section><h3>01 / Launch</h3><p>Newton’s second law couples rear-tire force, direct gas thrust, drag and rolling resistance. Rear axle loading is calculated from a quasi-static pitch balance. Tire force is limited by friction, torque and available power.</p><code>m dv/dt = F_tire + F_thrust − D − F_roll</code></section><section><h3>02 / Suction</h3><p>An assumed fan curve intersects a seal-leakage curve. The pressure difference acts over 4 m². Invert rotates a platform smoothly between your starting and final angles. Rotation changes normal load and tangential demand. Coulomb friction holds or slides it on a finite deck; seal loss removes suction. After support is lost, the car translates under gravity until ground impact. Pitch follows the guided deck while supported. Departure spin is conserved in flight. A new deck collision stops the model; edge tipping and collision response remain unsupported. The external rig actuator supplies motion; its power is not vehicle battery draw.</p><code>F_fan = Δp A · N = F_fan + m(g cos θ + qα + 2q̇ω − hω²)</code></section><section><h3>03 / Gas & heat</h3><p>A well-mixed tank uses consistent Peng–Robinson dry-air properties. Heat input is UA(T_source − T_gas), with adjustable conductance and imposed source temperature. Discharge is an open-system (m, u) blowdown through an isentropic real-gas nozzle (Cd = 0.9), with optional bell expansion, a prescribed valve opening ramp and assumed feed pressure loss. Feed throttling preserves enthalpy. A bell demanding sub-ambient exit pressure is approximated as separated throat-only delivery. Unsupported gas/nozzle states are flagged; the conservative gas domain starts at 140 K. No regulator, separate wall heat capacity or phase-change model is included.</p><code>d(mu)/dt = Q̇ − ṁ h₀ · nozzle: isentropic real gas</code></section><section><h3>04 / Hop</h3><p>Four balanced thrusters provide vertical motion. Optional descent braking draws from the remaining tank without refilling. Automatic mode forecasts the remaining real-air blowdown to choose coast and full-burn timing. Manual mode uses your scheduled window and fixed valve command; an early burn can cause rebound. The pre-run landing prediction uses the same simulated trajectory as playback. A bounded valve command then limits descent speed near the tunable touchdown target. Forecast limits close the valve before unsupported gas states; they remain visible in the result. Above the adjustable wreck speed, a cosmetic effect follows touchdown. No attitude controller or structural impact dynamics are modeled.</p><code>m d²y/dt² = F_thrust − mg</code></section><section><h3>05 / Turn</h3><p>Two independent runs share commanded speed, front-wheel steering, hardware and gas inventory. Steady-state bicycle geometry requests a curvature. A combined tire-friction circle reserves drive force before supplying lateral force; excess demand caps curvature and makes the path wider. Fan draw and steady drive load share the electrical budget. The finite track is separate from steering. Painted lane edges mark a departure event; cars continue into grass runoff without an impact. Speed, steering and available grip remain unchanged on the grass; terrain interaction is omitted. No transient tire-slip, yaw-stability, suspension, rollover or structural impact model is solved.</p><code>F_lat,max = sqrt((μN)² − F_drive²) · |κ| ≤ F_lat,max / (m v²)</code></section></div><h3>What the numbers mean</h3><p>Every vehicle and component input is an illustrative assumption. The defaults are ${DEFAULTS.mass} kg dry mass, ${DEFAULTS.power} kW electrical power, ${DEFAULTS.volume} L storage and ${absoluteToGaugeBar(DEFAULTS.pressure)} barg (${DEFAULTS.pressure.toFixed(5)} bara). Stored mass comes from the consistent Peng-Robinson EOS (below ideal-gas pV/RT at the default fill). No launch time is calibrated to a manufacturer claim.</p><p>Launch uses RK4 with a 2 ms step, milestone interpolation and a two-second boost window. Fans are pre-spun before launch. Comparison vehicles carry identical hardware and starting gas mass to isolate system effects. “Launch again” preserves the tank state at the end of the six-second run; no extra idle time or refill is assumed between runs. Heat exchange acts throughout simulated open- and closed-valve periods. Rotating Invert integrates guided contact motion with bracketed seal-loss, detachment, deck-recontact and ground-contact events; equal-angle tests retain analytic contact segments. Free flight preserves departure spin. Its rectangular contact proxy and speed-threshold wreck effects are illustrative; it does not solve structural impact dynamics. Sample energy in the engine is electrical work, not tank internal energy.</p><h3>Reference principles</h3><div class="source-links"><a href="https://www.grc.nasa.gov/www/k-12/airplane/mflchk.html" target="_blank" rel="noreferrer">NASA / Compressible mass flow ↗</a><a href="https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/rocket-thrust-equation/" target="_blank" rel="noreferrer">NASA / Thrust equation ↗</a><a href="https://www.tesla.com/roadster" target="_blank" rel="noreferrer">Tesla / Vehicle inspiration ↗</a></div></dialog>
 <div id="toast" role="status"></div>`;
-try{scene=new Scene($('#scene'));}catch(e){$('#scene-error').hidden=false;$('#scene-error').textContent=e.message;}
+try{scene=new Scene($('#scene'));scene.setQuality?.(quality);}catch(e){$('#scene-error').hidden=false;$('#scene-error').textContent=e.message;}
 if(experiment==='launch'){
  scene?.setCamera(camera);
  plots=new KinematicPlots($('#kinematic-plots'),{colors:SCENARIO_COLORS,getSample:comparisonSample,onScrub:scrub,onInspect:time=>vessel?.setInspection(time)});
@@ -424,6 +433,7 @@ document.querySelectorAll('[data-param],[data-number-param]').forEach(el=>{
  };
 });
 $('#play').onclick=()=>{sound.silence();impactStart=null;if(t>=duration()-.01)t=0;playing=!playing;if(playing)hideEndCard();cine=false;update();};$('#rewind').onclick=()=>{sound.silence();impactStart=null;t=0;playing=false;cine=false;scene?.setCamera(selectedCamera());hideEndCard();update();};$('#timeline').oninput=e=>{sound.silence();impactStart=null;t=+e.target.value;if(t>=duration()-.01){t=duration();markRevealed();}playing=false;cine=false;update();};$('#speed').onclick=()=>{speed=speed===.5?1:speed===1?.25:.5;$('#speed').textContent=speed+'×';};
+$('#overlay-toggle').onclick=()=>{physicsOverlay=!physicsOverlay;try{localStorage.setItem('roadsterlab.overlay',physicsOverlay?'1':'0');}catch{}$('#overlay-toggle').setAttribute('aria-pressed',String(physicsOverlay));renderOverlay();};
 for(const key of ['cutaway','vectors','compare']){const el=$('#'+key);if(el)el.onclick=()=>{if(key==='cutaway')cutaway=!cutaway;if(key==='vectors')vectors=!vectors;if(key==='compare')compare=!compare;if(key!=='compare'){if((key==='cutaway'&&cutaway)||(key==='vectors'&&vectors))closeUpForInspection();else restoreAfterInspection();}update();};}
 $('#camera-reset').onclick=()=>{cine=false;scene?.setCamera(selectedCamera());};$('#zoom-in').onclick=()=>scene?.nudgeZoom(-.55);$('#zoom-out').onclick=()=>scene?.nudgeZoom(.55);$('#defaults').onclick=()=>{noteTuningChange('Default setup');selectedPresets[experiment]=experiment==='invert'?'held':'default';Object.assign(c,DEFAULTS);if(experiment==='launch'){startGas=null;launchCount=1;}compare=false;cutaway=false;vectors=false;capture=false;cine=false;mount();};$('#capture-toggle').onclick=()=>{capture=!capture;applyCapture();};$('#repeat').onclick=()=>{startGas={...run.finalGas};launchCount++;hideEndCard();recompute(true,true);};$('#refill').onclick=()=>{startGas=null;launchCount=1;recompute();};document.querySelectorAll('#engineering summary').forEach(el=>el.addEventListener('click',()=>{playing=false;sound.silence();update();}));$('#about').onclick=()=>{playing=false;sound.silence();update();$('#model-dialog').showModal();};$('#close-dialog').onclick=()=>$('#model-dialog').close();$('#full-model').onclick=()=>{$('#model-dialog').close();$('#engineering').scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'start'});$('#engineering-title').tabIndex=-1;$('#engineering-title').focus({preventScroll:true});};$('#model-dialog').onclick=e=>{if(e.target===$('#model-dialog'))$('#model-dialog').close();};
 $('#share').onclick=async()=>{if(location.protocol==='file:'){toast('Sharing needs a hosted URL. Use CSV to export this experiment locally.');return;}const url=shareUrl();history.replaceState(null,'',url);try{await navigator.clipboard.writeText(url.href);toast('Experiment link copied.');}catch{toast('Preset saved in the address bar. Copy the URL to share.');}};
@@ -581,7 +591,7 @@ if(experiment==='launch'&&comparisonSample(run,t).ended&&comparisonSample(run,t)
 plots?.update(t,experiment==='hop'?2:mode);if(experiment==='hop')updateHop(s);vessel?.update(t,experiment==='hop'?2:mode,playing);
 
 const entries=experiment==='launch'?runs.map((r,i)=>{const state=comparisonSample(r,t);return {...state,sample:show(state.sample),mode:i,visible:visible[i],marks:launchMarks[i]};}):undefined;
-scene?.render({entries,autoFrame,sample:show(s),hop:experiment==='hop'?hopView():undefined,c:viewConfig,experiment,cutaway,vectors,compare,ghosts:experiment==='launch'?[sampleAt(runs[0],t),sampleAt(runs[1],t)]:[],mode});positionLabels();
+scene?.render({entries,autoFrame,previous:ghostState(),sample:show(s),hop:experiment==='hop'?hopView():undefined,c:viewConfig,experiment,cutaway,vectors,compare,ghosts:experiment==='launch'?[sampleAt(runs[0],t),sampleAt(runs[1],t)]:[],mode});positionLabels();
 if(experiment==='launch')runs.forEach((r,i)=>{const state=comparisonSample(r,t);set('lane-stat-'+i,state.ended&&state.unsupported?'STOPPED · '+r.status:(state.sample.v*speedUnit(units).scale).toFixed(0)+' '+speedUnit(units).label+' · '+state.sample.x.toFixed(1)+' m');});}
 // The apex marker appears once the car gets there, or after the result is revealed.
 function hopView(){const apex=hopData.apex&&(isRevealed()||t>=hopData.apex.t-1e-6)?hopData.apex:null;return {...hopData,apex,stopped:t>=duration()-1e-8,touchdownAge:impactStart===null||reducedMotion()?null:(performance.now()-impactStart)/1000,damage:hopDamage(hopData,t,reducedMotion()?1.2:impactStart===null?1.2:(performance.now()-impactStart)/1000)};}
@@ -591,14 +601,31 @@ function renderBetweenTelemetry(){
  if(experiment==='invert'){renderInvertSample(sampleAt(run,t));return;}
  const cfg=activeConfig,s=sampleAt(run,t),ready=t<=0&&!playing,show=sample=>ready?{...sample,flow:0,thrust:0}:sample;
  const entries=experiment==='launch'?runs.map((r,i)=>{const state=comparisonSample(r,t);return {...state,sample:show(state.sample),mode:i,visible:visible[i],marks:launchMarks[i]};}):undefined;
- scene?.render({entries,autoFrame,sample:show(s),hop:experiment==='hop'?hopView():undefined,c:cfg,experiment,cutaway,vectors,mode});positionLabels();
+ scene?.render({entries,autoFrame,previous:ghostState(),sample:show(s),hop:experiment==='hop'?hopView():undefined,c:cfg,experiment,cutaway,vectors,mode});positionLabels();
 }
 function turnAnalysis(){return `<section class="hop-analysis turn-analysis" aria-label="Turn trajectory and grip analysis"><div class="hop-analysis-heading"><div><span class="eyebrow">TWO PATHS / ONE CORNER</span><h2>Grip sets the limit.</h2></div><p>Steering asks for a curvature. Tire grip, normal load and drive force set the available lateral force. Both cases start at the same point and run independently; coincident cars display the selected case.</p></div><div id="turn-events" class="hop-event-controls"></div><article class="turn-map-card"><header><h3>Trajectory / plan view</h3><span>No fan: dotted · Fan: solid</span></header><div id="turn-map"></div><p>Click the selected path or use arrow keys to scrub. Lane departures are marked; trajectories continue into the grass until the exit gate or observation-window end. World distances are in metres.</p></article><div id="turn-plots" class="hop-plots"></div><p class="turn-disclosure">This is a steady-state, grip-capped bicycle surrogate. It does not solve transient tire slip, yaw stability, suspension, rollover, braking strategy or structural impact. The ideal speed controller shares the electrical budget with the fan throughout the run, including runoff. Grass is visual: terrain grip, fan seal loss and braking are not modeled. Gas inventory remains unchanged.</p></section>`;}
 function renderTurnSamples(){
  if(!comparison)return;
  const entries=comparison.runs.map((r,i)=>({...turnSample(r,t),mode:i}));
- scene?.render({sample:entries[turnFocus].sample,c:activeConfig,experiment:'turn',mode:turnFocus,cutaway,vectors,entries,turn:{track:comparison.track,bounds:comparison.bounds,focus:turnFocus,marks:turnMarks,reveal:showcase&&!showcase.preparing?showcaseFrame(showcase.clock).fraction:undefined}});positionVesselLabel();
+ scene?.render({sample:entries[turnFocus].sample,c:activeConfig,experiment:'turn',mode:turnFocus,cutaway,vectors,entries,turn:{track:comparison.track,bounds:comparison.bounds,points:turnFramePoints(comparison),trails:turnTrails(comparison),focus:turnFocus,marks:turnMarks,reveal:showcase&&!showcase.preparing?showcaseFrame(showcase.clock).fraction:undefined}});positionVesselLabel();renderOverlay();
 }
+// Corner framing uses the actual road edges and both car paths rather than their axis-aligned box.
+let turnFrameCache={key:null,points:null,trails:null};
+function turnFramePoints(result){
+ if(turnFrameCache.key!==result){
+  const tr=result.track,points=[];
+  for(const p of tr.centerline){const dx=p.x,dz=p.z+tr.radius,r=Math.hypot(dx,dz)||1;for(const k of [tr.radius-tr.width/2-2,tr.radius+tr.width/2+2])points.push([dx/r*k,dz/r*k-tr.radius]);}
+  // Start and exit pads (6 m long) and a car-sized margin around each path point.
+  const end=tr.centerline.at(-1),tx=Math.cos(tr.sweep),tz=-Math.sin(tr.sweep);
+  for(const side of [-1,1]){points.push([-6,side*tr.width/2],[end.x+tx*6+tz*side*tr.width/2,end.z+tz*6-tx*side*tr.width/2]);}
+  for(const r of result.runs){const step=Math.max(1,Math.floor(r.samples.length/60));for(let i=0;i<r.samples.length;i+=step)points.push([r.samples[i].x,r.samples[i].z]);const last=r.samples.at(-1);for(const [dx,dz] of [[2.6,0],[-2.6,0],[0,2.6],[0,-2.6]])points.push([last.x+dx,last.z+dz]);}
+  // Path trails coloured by requested-grip utilization, one segment roughly every 0.8 m.
+  const trails=result.runs.map(r=>{const out=[];let last=null;for(const s of r.samples){if(!last||Math.hypot(s.x-last.x,s.z-last.z)>=.8||s===r.samples.at(-1)){out.push({t:s.t,x:s.x,z:s.z,u:s.utilizationValid?s.utilization:null,off:s.limit?.startsWith('OFF TRACK')});last=s;}}return out;});
+  turnFrameCache={key:result,points,trails};
+ }
+ return turnFrameCache.points;
+}
+function turnTrails(result){turnFramePoints(result);return turnFrameCache.trails;}
 function updateTurn(){
  if(!comparison)return;const selected=comparison.runs[turnFocus],state=turnSample(selected,t),s=state.sample,info=selected.turn;
  if(!busy&&!calculationError)comparison.runs.forEach((r,i)=>{
@@ -625,7 +652,7 @@ function drawTurnPlots(){
 }
 function renderInvertSample(sample){
  const age=reducedMotion()?1.2:impactStart===null?1.2:(performance.now()-impactStart)/1000;
- scene?.render({sample,c:activeConfig,experiment:'invert',mode:1,cutaway,vectors,invert:{...run.invert,damage:invertDamage(run,t,age)}});positionVesselLabel();positionInvertGauge();
+ scene?.render({sample,c:activeConfig,experiment:'invert',mode:1,cutaway,vectors,invert:{...run.invert,damage:invertDamage(run,t,age)}});positionVesselLabel();positionInvertGauge();renderOverlay();
 }
 function updateInvert(s){
  const info=run.invert,p=invertPrediction(run),done=t>=duration()-1e-8,phase=done?(run.status==='IMPACT'?info.outcome:run.status):t===0?'READY / '+s.limit:s.limit;
@@ -707,6 +734,51 @@ function positionInvertGauge(){
  if(!g?.gauge||docked){if(el.textContent)el.textContent='';return;}
  el.style.left=g.gauge[0]+'px';el.style.top=g.gauge[1]+'px';const text=`θ ${g.angle.toFixed(0)}°`;if(el.textContent!==text)el.textContent=text;
 }
+let overlayScaleCache={key:null,value:1},overlayMarkup='',timelineMarkup='';
+// The previous calculation (before the latest parameter change or repeat launch), drawn as a ghost with the Physics aids.
+let previousResult=null,lastInstalled=null;
+function ghostState(){
+ if(!physicsOverlay||!previousResult||busy)return null;
+ if(experiment==='launch'){const r=previousResult.runs?.[mode];return r?{mode,sample:comparisonSample(r,t).sample}:null;}
+ if(experiment==='hop'){const r=previousResult.runs?.[2];return r?{sample:sampleAt(r,Math.min(t,r.samples.at(-1).t))}:null;}
+ return null;
+}
+function positionGhostLabel(){
+ const el=$('#ghost-label');if(!el)return;const g=scene?.ghostAnnotation;
+ el.hidden=!g?.point||docked;if(el.hidden)return;el.style.left=g.point[0]+'px';el.style.top=g.point[1]+'px';
+}
+// The panel shows the current solver state only (never future outcomes), so it is safe before reveal.
+function renderOverlay(){
+ const el=$('#physics-overlay');renderTimelineEvents();if(!el)return;
+ const stage=$('#stage-card'),ready=!!run&&(experiment==='launch'||experiment==='turn'?!!comparison:true);
+ const show=physicsOverlay&&ready&&!docked&&!busy&&!calculationError&&(stage?stage.hidden:true);
+ el.hidden=!show;if(!show)return;
+ const source=experiment==='launch'||experiment==='turn'?comparison:run;
+ if(overlayScaleCache.key!==source)overlayScaleCache={key:source,value:overlayScale(experiment,experiment==='launch'||experiment==='turn'?comparison.runs:[run],activeConfig)};
+ const scale=overlayScaleCache.value,idle=t<=0&&!playing;let html='';
+ if(experiment==='launch'){const s=comparisonSample(runs[mode],t).sample;html=overlayHTML(launchBudget(idle?{...s,thrust:0}:s,activeConfig),{scale,title:names[mode],color:SCENARIO_COLORS[mode].hex});}
+ else if(experiment==='turn'){const other=1-turnFocus,a=turnSample(comparison.runs[turnFocus],t).sample,b=turnSample(comparison.runs[other],t).sample;html=overlayHTML(turnCircle(a),{scale,title:TURN_COLORS[turnFocus].name,color:TURN_COLORS[turnFocus].hex,second:turnCircle(b),secondTitle:TURN_COLORS[other].name,secondColor:TURN_COLORS[other].hex});}
+ else if(experiment==='invert')html=overlayHTML(invertBudget(sampleAt(run,t),activeConfig),{scale});
+ else if(experiment==='hop'){const s=sampleAt(run,t);html=overlayHTML(hopBudget(idle?{...s,thrust:0,valve:0}:s,activeConfig),{scale});}
+ if(html!==overlayMarkup){el.innerHTML=html;overlayMarkup=html;}
+}
+// Event markers on the transport timeline. Outcome events appear once playback reaches them or after reveal.
+function timelineEvents(){
+ if(!run)return [];
+ if(experiment==='launch'){const u=speedUnit(units),list=[];if(runs[2]&&visible[2])list.push({t:activeConfig.boostAt,label:'Thrust valve opens',kind:'valve'},{t:activeConfig.boostAt+2,label:'Thrust valve closes',kind:'valve'});runs.forEach((r,i)=>{if(visible[i]&&Number.isFinite(r[u.milestoneKey]))list.push({t:r[u.milestoneKey],label:`${names[i]} · ${u.milestone} in ${r[u.milestoneKey].toFixed(2)} s`,color:SCENARIO_COLORS[i].hex});});return list;}
+ if(experiment==='turn'&&comparison)return turnEvents(comparison).filter(e=>e.t>0).map(e=>({...e,label:e.label.toLowerCase().replace(/^./,c=>c.toUpperCase())+` · ${e.t.toFixed(2)} s`}));
+ if(experiment==='hop'&&hopData)return hopData.events.map(e=>({...e,label:`${e.label} · ${e.t.toFixed(2)} s`}));
+ if(experiment==='invert')return (run.invert?.events||[]).map(e=>({...e,label:`${e.label} · ${e.t.toFixed(2)} s`}));
+ return [];
+}
+function renderTimelineEvents(){
+ const el=$('#timeline-events');if(!el)return;
+ if(!run||(experiment==='turn'&&!comparison)){if(timelineMarkup){el.innerHTML='';timelineMarkup='';}return;}
+ const d=duration(),revealed=isRevealed(),list=busy||calculationError?[]:timelineEvents().filter(e=>Number.isFinite(e.t)&&e.t>=0&&e.t<=d+1e-9&&(revealed||e.kind==='valve'||e.t<=t+1e-6));
+ const html=list.map((e,i)=>`<button data-timeline-event="${i}" data-t="${e.t}" class="${e.kind||''}" style="--at:${(e.t/d).toFixed(5)};${e.color?`--event:${e.color}`:''}" title="${e.label}" aria-label="Jump to ${e.label}"></button>`).join('');
+ if(html===timelineMarkup)return;timelineMarkup=html;el.innerHTML=html;
+ el.querySelectorAll('[data-timeline-event]').forEach(b=>b.onclick=()=>scrub(+b.dataset.t));
+}
 function positionVesselLabel(){
  const label=$('#cutaway-label'),point=scene?.vesselAnnotation?.point;
  if(!label)return;label.hidden=!cutaway||!point;if(label.hidden)return;
@@ -717,7 +789,7 @@ function positionVesselLabel(){
  label.classList.toggle('label-below',(experiment==='hop'&&y+caption.offsetHeight+74<scene.canvas.clientHeight-40)||y<caption.offsetHeight+50);
 }
 function positionLabels(){
- positionVesselLabel();
+ positionVesselLabel();renderOverlay();positionGhostLabel();
  if(experiment==='hop'){positionHopLabels();return;}
  if(experiment!=='launch'||!scene)return;const placed=[],heading=$('.scene-heading');
  if(heading)placed.push({left:heading.offsetLeft,right:heading.offsetLeft+heading.offsetWidth,top:heading.offsetTop,bottom:heading.offsetTop+heading.offsetHeight});
@@ -736,7 +808,7 @@ function positionLabels(){
     placed.push({left:x-width/2,right:x+width/2,top:y-height,bottom:y});
     el.style.left=x+'px';el.style.top=y+'px';}
  }
- const marks=$('#distance-marks');if(marks){const markup=(scene.distanceMarks||[]).map(m=>`<span style="left:${m.point[0]}px;top:${m.point[1]}px">${m.x} m</span>`).join('');if(marks._last!==markup){marks.innerHTML=markup;marks._last=markup;}}
+ const marks=$('#distance-marks');if(marks){const markup=(scene.distanceMarks||[]).filter(m=>!placed.some(p=>m.point[0]+30>p.left&&m.point[0]-30<p.right&&m.point[1]>p.top-2&&m.point[1]-24<p.bottom+2)).map(m=>`<span style="left:${m.point[0]}px;top:${m.point[1]}px">${m.x} m</span>`).join('');if(marks._last!==markup){marks.innerHTML=markup;marks._last=markup;}}
 }
 function drawPlots(){if(!run)return;if(experiment==='turn'){drawTurnPlots();return;}if(experiment==='invert'){drawInvertPlots();return;}if(experiment==='hop'&&hopData){plots?.setData({config:activeConfig,duration:duration(),runs:[run,run,run],events:hopData.events},[false,false,true]);set('hop-events',hopData.events.map((e,i)=>`<button data-hop-event="${i}">${e.label}<strong>${e.t.toFixed(2)} s</strong></button>`).join(''));document.querySelectorAll('[data-hop-event]').forEach(b=>{b.disabled=busy;b.onclick=()=>scrub(hopData.events[+b.dataset.hopEvent].t);});}if(vessel){const result=experiment==='launch'?comparison:{config:activeConfig,duration:duration(),runs:[run,run,run]};if(result)vessel.setData(result,experiment==='hop'?2:mode,initialGas(activeConfig).mass,experiment);}if(experiment==='launch'&&comparison){plots?.setData(comparison,visible);const u=speedUnit(units);set('milestone-results',runs.map((r,i)=>`<div style="--scenario:${SCENARIO_COLORS[i].hex}"><span>${names[i]} / ${u.milestone}</span><strong>${r[u.milestoneKey]?.toFixed(2)||'—'} <small>s</small></strong><small>${r.status==='COMPLETE'?'Standing start, no rollout':r.status+' at '+r.samples.at(-1).t.toFixed(2)+' s'}</small></div>`).join(''));}const plotConfig=activeConfig,samples=run.samples,d=duration(),forceScale=Math.max(1000,...run.samples.map(s=>Math.max(s.tire,s.thrust)))*1.12;const grid='<path d="M0 23H400M0 47H400M0 71H400" stroke="#ffffff0c" fill="none"/><line class="cursor-line" x1="0" y1="0" x2="0" y2="95" stroke="#ffffff65" stroke-dasharray="3 3"/>';
 const path=(key,max)=>samples.filter((_,i)=>i%3===0).map((s,i)=>`${i?'L':'M'}${(s.t/d*400).toFixed(1)},${(89-Math.max(0,s[key])/max*78).toFixed(1)}`).join('');
@@ -770,7 +842,9 @@ function frame(now){
   }
  }
  if(animating||scene?.dirty||resized){
-  if(lastFrameTime){frameIntervals.push(now-lastFrameTime);if(frameIntervals.length>=90){canvas.dataset.frameRate=(1000*frameIntervals.length/frameIntervals.reduce((a,b)=>a+b,0)).toFixed(1);frameIntervals=[];}}
+  if(lastFrameTime){frameIntervals.push(now-lastFrameTime);if(frameIntervals.length>=90){const rate=1000*frameIntervals.length/frameIntervals.reduce((a,b)=>a+b,0);canvas.dataset.frameRate=rate.toFixed(1);frameIntervals=[];
+   // Adaptive quality: sustained playback below ~32 fps drops one level (bloom, then shadows). Never steps back up within a page.
+   if(QUALITY_PARAM===undefined&&(playing||showcase)&&rate<32&&quality>0&&scene?.setQuality){quality--;scene.setQuality(quality);toast(quality?'Graphics simplified (bloom off) to keep playback smooth.':'Graphics simplified (shadows off) to keep playback smooth.');}}}
   lastFrameTime=now;
   const renderStart=performance.now();
   if(completed||now-lastTelemetryFrame>=40){update();lastTelemetryFrame=now;}else renderBetweenTelemetry();

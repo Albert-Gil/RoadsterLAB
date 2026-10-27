@@ -395,6 +395,7 @@ not the currently edited setup.
 | `impulse/src/plots.js`, `vessel.js`, `hop.js`, `invert.js`, `turn.js` | Experiment presentation and synchronized analysis. |
 | `impulse/src/audio.js` | Sample engine (on by default once the browser allows it), persistent loops, event gates and independent music/effects buses. Served pages decode compact Opus/AAC copies and fall back to the WAVs. |
 | `impulse/src/reveal.js` | Predict-then-reveal questions graded only from solver results, reveal keys and display speed units. |
+| `impulse/src/overlay.js` | Live physics panel models and markup (force budget, friction circle, contact budget, thrust/weight) built from current solver samples. |
 | `impulse/assets/fonts/` | Self-hosted Inter and JetBrains Mono (OFL-1.1); embedded as data URLs in the standalone page. |
 
 From `impulse/`, `node scripts/release.mjs` builds local release folders with the
