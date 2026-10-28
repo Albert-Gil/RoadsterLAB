@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f6f2">
+<meta name="description" content="150 mixed engineering questions, interactive plots and instant explanations for SpaceX technical-screen practice.">
+<title>First Principles — Interview Practice</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23006868'/%3E%3Cpath d='M18 46V18h29M18 31h22' fill='none' stroke='white' stroke-width='6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="app"><main class="shell loading"><p class="eyebrow">FIRST PRINCIPLES</p><h1>Loading your practice bank…</h1><p>If this stays visible, reload the page with JavaScript enabled.</p></main></div>
+<dialog id="diagram-modal" aria-labelledby="diagram-modal-title">
+<div class="dialog-top"><h2 id="diagram-modal-title">Diagram</h2><button class="icon-button" data-action="close-diagram" aria-label="Close diagram">×</button></div>
+<div id="diagram-content"></div>
+</dialog>
+<dialog id="info-modal" aria-labelledby="info-title">
+<div class="dialog-top"><h2 id="info-title">About this practice bank</h2><button class="icon-button" data-action="close-info" aria-label="Close information">×</button></div>
+<div class="info-body">
+<p>150 original, single-answer questions for practicing engineering first principles in English. The order and answer positions change between sets. Numerical answers are approximate where stated.</p>
+<p>The set mixes compute cooling, pumps and piping, heat transfer, structures, cryogenics, methane processing, troubleshooting and thermal-cycle selection. Thirty questions include a graph or schematic.</p>
+<p>Cycle-selection scenarios state their constraints. No cycle is presented as universally optimal. These are practice scenarios, not an official SpaceX question bank or a disclosed Starbase process design.</p>
+<p>Progress is saved in this browser on this device. It does not automatically synchronize between your phone and computer. Answers are locked after selection so the first response counts.</p>
+<h3>Technical references</h3>
+<ul>
+<li><a href="https://www.energy.gov/sites/default/files/2024-07/best-practice-guide-data-center-design_0.pdf" target="_blank" rel="noopener">DOE / NREL — Data center design and cooling</a></li>
+<li><a href="https://trc.nist.gov/cryogenics/cryocoolers.html" target="_blank" rel="noopener">NIST — Recuperative, Brayton, JT and Claude refrigeration</a></li>
+<li><a href="https://www.linde-engineering.com/products-and-services/process-plants/natural-gas-processing/small-to-mid-scale-lng-plants" target="_blank" rel="noopener">Linde — Nitrogen expansion and mixed-refrigerant LNG routes</a></li>
+<li><a href="https://www.energy.gov/sites/default/files/2017/06/f35/CHP-Absorption%20Chiller-compliant.pdf" target="_blank" rel="noopener">DOE — Absorption chillers and heat-driven cooling</a></li>
+<li><a href="https://handbook.ashrae.org/Handbooks/R26/SI/r26_ch47/r26_ch47_si.aspx" target="_blank" rel="noopener">ASHRAE — Cryogenic cycles and heat-transfer matching</a></li>
+<li><a href="https://www.energy.gov/ehss/articles/doe-hdbk-10121-92" target="_blank" rel="noopener">DOE Fundamentals Handbook — Thermodynamics, heat transfer and fluids</a></li>
+<li><a href="https://www.nasa.gov/centers-and-facilities/white-sands/oxygen-compatibility-assessment-and-hazards-evaluation/" target="_blank" rel="noopener">NASA — Oxygen compatibility assessment</a></li>
+</ul>
+<p class="muted">Use the assumptions stated in each question. Approximate textbook checks do not replace equipment qualification, vendor curves or the applicable design requirements.</p>
+</div>
+</dialog>
+<noscript><p class="shell">Enable JavaScript to use the interactive quiz.</p></noscript>
+<script type="module" src="./app.js"></script>
+</body></html>

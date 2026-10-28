@@ -67,4 +67,8 @@ await writeFile('dist/standalone-worker.js',workerBundle);
 new Script(bundled, {filename:'roadsterlab.html'});
 await writeFile('dist/impulse.html', html.replace('<link rel="stylesheet" href="style.css"/>', `<style>${standaloneCss}</style>`).replace('<script type="module" src="app.js"></script>', `<script type="module">${bundled.replace(/<\/script/gi,'<\\/script')}</script>`));
 await copyFile('dist/impulse.html','dist/roadsterlab.html');
+// Publish the independent engineering quiz at its own URL.
+await mkdir('dist/engineering-practice', { recursive: true });
+for (const file of ['index.html','styles.css','questions.js','engine.js','charts.js','app.js'])
+ await copyFile(`../engineering-practice/${file}`, `dist/engineering-practice/${file}`);
 console.log('Built dependency-free application in dist/');
