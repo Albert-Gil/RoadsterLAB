@@ -159,7 +159,7 @@ test("numeric feedback for series-pump distractor is consistent",()=>{
   assert.ok(Math.abs(nums(q.options[3].text)[0]-seriesFlow)<.06);
 });
 test("touch and accessibility essentials are present in the shipped files",async()=>{
-  const [html,css,app]=await Promise.all(["index.html","styles.css","app.js"].map(p=>readFile(p,"utf8")));
+  const [html,css,app]=await Promise.all(["multiple-choice.html","styles.css","app.js"].map(p=>readFile(p,"utf8")));
   assert.ok(html.includes('width=device-width'));
   assert.ok(html.includes('<html lang="en">'));
   assert.ok(css.includes("safe-area-inset-bottom")&&css.includes(":focus-visible"));
@@ -181,3 +181,4 @@ test("cryogenic minimum-work and structural scaling answers agree with formulas"
   assert.ok(byId.get(8).options.find(o=>o.id===byId.get(8).correct).text.includes("tension"));
   assert.ok(byId.get(84).options.find(o=>o.id===byId.get(84).correct).text.includes("compression"));
 });
+
